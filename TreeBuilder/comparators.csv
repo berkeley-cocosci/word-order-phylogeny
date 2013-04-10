@@ -1,0 +1,193 @@
+id,name,comparator,comparg
+1A,Consonant Inventories,euclidean,5
+2A,Vowel Quality Inventories,euclidean,3
+3A,Consonant-Vowel Ratio,euclidean,5
+4A,Voicing in Plosives and Fricatives,hamming,0
+5A,Voicing and Gaps in Plosive Systems,hamming,0
+6A,Uvular Consonants,hamming,0
+7A,Glottalized Consonants,hamming,0
+8A,Lateral Consonants,hamming,0
+9A,The Velar Nasal,hamming,0
+10A,Vowel Nasalization,hamming,0
+11A,Front Rounded Vowels,hamming,0
+12A,Syllable Structure,euclidean,3
+13A,Tone,euclidean,3
+14A,Fixed Stress Locations,hamming,0
+15A,Weight-Sensitive Stress,hamming,0
+16A,Weight Factors in Weight-Sensitive Stress Systems,hamming,0
+17A,Rhythm Types,hamming,0
+18A,Absence of Common Consonants,hamming,0
+19A,Presence of Uncommon Consonants,hamming,0
+20A,Fusion of Selected Inflectional Formatives,hamming,0
+21A,Exponence of Selected Inflectional Formatives,hamming,0
+22A,Inflectional Synthesis of the Verb,euclidean,7
+23A,Locus of Marking in the Clause,hamming,0
+24A,Locus of Marking in Possessive Noun Phrases,hamming,0
+25A,Locus of Marking: Whole-language Typology,hamming,0
+26A,Prefixing vs. Suffixing in Inflectional Morphology,euclidean,6
+27A,Reduplication,hamming,0
+28A,Case Syncretism,hamming,0
+29A,Syncretism in Verbal Person/Number Marking,hamming,0
+30A,Number of Genders,euclidan,5
+31A,Sex-based and Non-sex-based Gender Systems,hamming,0
+32A,Systems of Gender Assignment,hamming,0
+33A,Coding of Nominal Plurality,hamming,0
+34A,Occurrence of Nominal Plurality,hamming,0
+35A,Plurality in Independent Personal Pronouns,hamming,0
+36A,The Associative Plural,hamming,0
+37A,Definite Articles,hamming,0
+38A,Indefinite Articles,hamming,0
+39A,Inclusive/Exclusive Distinction in Independent Pronouns,hamming,0
+40A,Inclusive/Exclusive Distinction in Verbal Inflection,hamming,0
+41A,Distance Contrasts in Demonstratives,euclidean,5
+42A,Pronominal and Adnominal Demonstratives,hamming,0
+43A,Third Person Pronouns and Demonstratives,hamming,0
+44A,Gender Distinctions in Independent Personal Pronouns,hamming,0
+45A,Politeness Distinctions in Pronouns,hamming,0
+46A,Indefinite Pronouns,hamming,0
+47A,Intensifiers and Reflexive Pronouns,hamming,0
+48A,Person Marking on Adpositions,hamming,0
+49A,Number of Cases,euclidean,9
+50A,Asymmetrical Case-Marking,hamming,0
+51A,Position of Case Affixes,hamming,0
+52A,Comitatives and Instrumentals,hamming,0
+53A,Ordinal Numerals,hamming,0
+54A,Distributive Numerals,hamming,0
+55A,Numeral Classifiers,hamming,0
+56A,Conjunctions and Universal Quantifiers,hamming,0
+57A,Position of Pronominal Possessive Affixes,hamming,0
+58A,Obligatory Possessive Inflection,hamming,0
+59A,Possessive Classification,euclidean,4
+60A,"Genitives, Adjectives and Relative Clauses",hamming,0
+61A,Adjectives without Nouns,hamming,0
+62A,Action Nominal Constructions,hamming,0
+63A,Noun Phrase Conjunction,hamming,0
+64A,Nominal and Verbal Conjunction,hamming,0
+65A,Perfective/Imperfective Aspect,hamming,0
+66A,The Past Tense,hamming,0
+67A,The Future Tense,hamming,0
+68A,The Perfect,hamming,0
+69A,Position of Tense-Aspect Affixes,hamming,0
+70A,The Morphological Imperative,hamming,0
+71A,The Prohibitive,hamming,0
+72A,Imperative-Hortative Systems,hamming,0
+73A,The Optative,hamming,0
+74A,Situational Possibility,hamming,0
+75A,Epistemic Possibility,hamming,0
+76A,Overlap between Situational and Epistemic Modal Marking,hamming,0
+77A,Semantic Distinctions of Evidentiality,hamming,0
+78A,Coding of Evidentiality,hamming,0
+79A,Suppletion According to Tense and Aspect,hamming,0
+80A,Verbal Number and Suppletion,hamming,0
+81A,"Order of Subject, Object and Verb",hamming,0
+82A,Order of Subject and Verb,hamming,0
+83A,Order of Object and Verb,hamming,0
+84A,"Order of Object, Oblique, and Verb",hamming,0
+85A,Order of Adposition and Noun Phrase,hamming,0
+86A,Order of Genitive and Noun,hamming,0
+87A,Order of Adjective and Noun,hamming,0
+88A,Order of Demonstrative and Noun,hamming,0
+89A,Order of Numeral and Noun,hamming,0
+90A,Order of Relative Clause and Noun,hamming,0
+91A,Order of Degree Word and Adjective,hamming,0
+92A,Position of Polar Question Particles,hamming,0
+93A,Position of Interrogative Phrases in Content Questions,hamming,0
+94A,Order of Adverbial Subordinator and Clause,hamming,0
+95A,Relationship between the Order of Object and Verb and the Order of Adposition and Noun Phrase,hamming,0
+96A,Relationship between the Order of Object and Verb and the Order of Relative Clause and Noun,hamming,0
+97A,Relationship between the Order of Object and Verb and the Order of Adjective and Noun,hamming,0
+98A,Alignment of Case Marking of Full Noun Phrases,hamming,0
+99A,Alignment of Case Marking of Pronouns,hamming,0
+100A,Alignment of Verbal Person Marking,hamming,0
+101A,Expression of Pronominal Subjects,hamming,0
+102A,Verbal Person Marking,hamming,0
+103A,Third Person Zero of Verbal Person Marking,hamming,0
+104A,Order of Person Markers on the Verb,hamming,0
+105A,Ditransitive Constructions: The Verb 'Give',hamming,0
+106A,Reciprocal Constructions,hamming,0
+107A,Passive Constructions,hamming,0
+108A,Antipassive Constructions,hamming,0
+109A,Applicative Constructions,hamming,0
+110A,Periphrastic Causative Constructions,hamming,0
+111A,Nonperiphrastic Causative Constructions,hamming,0
+112A,Negative Morphemes,hamming,0
+113A,Symmetric and Asymmetric Standard Negation,hamming,0
+114A,Subtypes of Asymmetric Standard Negation,hamming,0
+115A,Negative Indefinite Pronouns and Predicate Negation,hamming,0
+116A,Polar Questions,hamming,0
+117A,Predicative Possession,hamming,0
+118A,Predicative Adjectives,hamming,0
+119A,Nominal and Locational Predication,hamming,0
+120A,Zero Copula for Predicate Nominals,hamming,0
+121A,Comparative Constructions,hamming,0
+122A,Relativization on Subjects,hamming,0
+123A,Relativization on Obliques,hamming,0
+124A,'Want' Complement Subjects,hamming,0
+125A,Purpose Clauses,hamming,0
+126A,'When' Clauses,hamming,0
+127A,Reason Clauses,hamming,0
+128A,Utterance Complement Clauses,hamming,0
+129A,Hand and Arm,hamming,0
+130A,Finger and Hand,hamming,0
+131A,Numeral Bases,hamming,0
+132A,Number of Non-Derived Basic Colour Categories,euclidean,7
+133A,Number of Basic Colour Categories,euclidean,7
+134A,Green and Blue,hamming,0
+135A,Red and Yellow,hamming,0
+136A,M-T Pronouns,hamming,0
+137A,N-M Pronouns,hamming,0
+138A,Tea,hamming,0
+139A,Irregular Negatives in Sign Languages,euclidean,4
+140A,Question Particles in Sign Languages,euclidean,3
+141A,Writing Systems,hamming,0
+142A,Para-Linguistic Usages of Clicks,hamming,0
+143F,Postverbal Negative Morphemes,hamming,0
+90B,Prenominal relative clauses,hamming,0
+144Y,The Position of Negative Morphemes in Object-Initial Languages,hamming,0
+90C,Postnominal relative clauses,hamming,0
+144P,NegSOV Order,hamming,0
+144J,SVNegO Order,hamming,0
+144N,Obligatory Double Negation in SOV languages,hamming,0
+144S,SOVNeg Order,hamming,0
+144X,Verb-Initial with Clause-Final Negative,hamming,0
+144A,"Position of Negative Word With Respect to Subject, Object, and Verb",hamming,0
+90G,Double-headed relative clauses,hamming,0
+90E,Correlative relative clauses,hamming,0
+144V,Verb-Initial with Preverbal Negative,hamming,0
+144I,SNegVO Order,hamming,0
+144R,SONegV Order,hamming,0
+143B,Obligatory Double Negation,hamming,0
+144M,Multiple Negative Constructions in SOV Languages,hamming,0
+144U,Double negation in verb-initial languages,hamming,0
+144G,Optional Double Negation in SVO languages,hamming,0
+144K,SVONeg Order,hamming,0
+144B,Position of negative words relative to beginning and end of clause and with respect to adjacency to verb,hamming,0
+144F,Obligatory Double Negation in SVO languages,hamming,0
+90D,Internally-headed relative clauses,hamming,0
+144E,Multiple Negative Constructions in SVO Languages,hamming,0
+144D,The Position of Negative Morphemes in SVO Languages,hamming,0
+81B,"Languages with two Dominant Orders of Subject, Object, and Verb",hamming,0
+143E,Preverbal Negative Morphemes,hamming,0
+143C,Optional Double Negation,hamming,0
+90F,Adjoined relative clauses,hamming,0
+143A,Order of Negative Morpheme and Verb,hamming,0
+144W,Verb-Initial with Negative that is Immediately Postverbal or between Subject and Object,hamming,0
+144O,Optional Double Negation in SOV languages,hamming,0
+144Q,SNegOV Order,hamming,0
+144L,The Position of Negative Morphemes in SOV Languages,hamming,0
+144H,NegSVO Order,hamming,0
+144C,Languages with different word order in negative clauses,hamming,0
+144T,The Position of Negative Morphemes in Verb-Initial Languages,hamming,0
+143G,Minor morphological means of signaling negation,hamming,0
+143D,Optional Triple Negation,hamming,0
+39B,Inclusive/Exclusive Forms in Pama-Nyungan,hamming,0
+137B,M in Second Person Singular,hamming,0
+136B,M in First Person Singular,hamming,0
+109B,Other Roles of Applied Objects,hamming,0
+10B,Nasal Vowels in West Africa,hamming,0
+25B,Zero Marking of A and P Arguments,hamming,0
+21B,Exponence of Tense-Aspect-Mood Inflection,hamming,0
+108B,Productivity of the Antipassive Construction,hamming,0
+130B,Cultural Categories of Languages with Identity of 'Finger' and 'Hand',hamming,0
+58B,Number of Possessive Nouns,euclidean,4
+79B,Suppletion in Imperatives and Hortatives,hamming,0
