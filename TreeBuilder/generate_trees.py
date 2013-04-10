@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from codecs import open
 from os import system, unlink
 from sys import exit

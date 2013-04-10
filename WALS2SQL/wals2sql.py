@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from codecs import open
 import csv
 import sqlite3
