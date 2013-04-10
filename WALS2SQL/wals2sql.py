@@ -63,6 +63,8 @@ def parse_wals_data(wals_dir):
 
 def empty_tables(conn, cursor):
     cursor.execute("""DELETE FROM data_points""")
+    cursor.execute("""DELETE FROM langs_per_feature_counts""")
+    cursor.execute("""DELETE FROM features_per_lang_counts""")
     cursor.execute("""DELETE FROM languages""")
     cursor.execute("""DELETE FROM features""")
     cursor.execute("""DELETE FROM values_""")
