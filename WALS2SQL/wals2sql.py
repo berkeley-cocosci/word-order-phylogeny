@@ -177,24 +177,6 @@ def create_dense_subset(conn, cursor):
                 (SELECT wals_code FROM data_points WHERE feature_id=? and value_id IS NULL)''', (fid,))
     cursor.execute('''SELECT COUNT(wals_code) FROM dense_languages''')
 
-def save_translate_file(languages):
-    fp = open("translate_block", "w", "utf8")
-    fp.write("translate\n");
-    fp.write("%d %s" % (0, languages[0].name)) 
-    for i in range(1,len(languages)):
-        fp.write(",\n%d %s" % (i, languages[i].name)) 
-    fp.write(";\n")
-    fp.close()
-
-def save_multistate_file(languages):
-    fp = open("multistate_file", "w", "utf8")
-    for i, lang in enumerate(languages):
-	if len(lang.data.keys()) != 19:
-		print "Skipping %s, because it's broken" % lang.name.encode("UTF-8")
-		continue
-	fp.write("%s	%d\n" % (lang.name, lang.data[u'Order of Subject, Object and Verb']))
-    fp.close()
-
 
 def main():
     conn = sqlite3.connect("wals.db")
