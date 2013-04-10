@@ -10,8 +10,8 @@ from distance import *
 import dendropy
 
 FUZZES = {}
-FUZZES["family"] = 0.05
-FUZZES["distance"] = 0.05 # was 001
+FUZZES["geographic"] = 0.05 # was 001
+FUZZES["genetic"] = 0.05
 FUZZES["feature"] = 0.05
 
 bwo = "Order of Subject, Object and Verb"
@@ -197,7 +197,7 @@ def main():
         save_translate_file(langs, "generated_trees/" + name + ".translate")
         save_multistate_file(langs, "generated_trees/" + name + ".leafdata")
 
-    for method in "distance", "genetic", "feature":
+    for method in "geographic", "genetic", "feature":
         for langs, age, name in zip(languages, ages, names):
             make_trees(langs, age, method, name, 100)
 
