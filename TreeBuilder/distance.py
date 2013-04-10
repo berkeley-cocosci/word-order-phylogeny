@@ -39,7 +39,7 @@ def haversine_distance(val1, val2):
         d = 2*d/(2*pi*R)
         return d
 
-def family_distance(lang1, lang2, comparators, weights):
+def genetic_distance(lang1, lang2, comparators):
 	if(lang1.data["genus"] and lang2.data["genus"] and lang1.data["genus"] == lang2.data["genus"]):
 		# Known matching genera - minimum distance
 		return 1.0
@@ -66,24 +66,14 @@ def family_distance(lang1, lang2, comparators, weights):
 def distance_distance(lang1, lang2, comparators, weights):
 	return family_distance(lang1, lang2, comparators, weights) + comparators["location"](lang1.data["location"], lang2.data["location"])
 
-def feature_distance(lang1, lang2, comparators, weights):
+def feature_distance(lang1, lang2, comparators):
 	feature_distance = 0
 	norm = 0
 	for key in lang1.data:
 		if key not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb"]:
 			feature_distance += comparators[key](lang1.data[key], lang2.data[key])
 			norm += 1.0
-	return distance_distance(lang1, lang2, comparators, weights) + feature_distance/norm
-
-def generate_feature_weights(feat_data):
-	weights = {}
-	for x in feat_data.values():
-		weights[x] = 1.0
-	weights["genus"] = 0.0
-	weights["subfamily"] = 0.0
-	weights["family"] = 20.0
-	weights["location"] = 5.0
-	return weights
+	return distance_distance(lang1, lang2, comparators) + feature_distance/norm
 
 def build_matrix(languages, method):
 	comparators = build_comparators()
@@ -102,7 +92,7 @@ def build_matrix(languages, method):
 		for j in range(i,len(languages)):
 			if i == j:
 				continue
-			matrix[i][j] = distance(languages[i],languages[j],comparators,weights)
+			matrix[i][j] = distance(languages[i],languages[j],comparators)
 			matrix[j][i] = matrix[i][j]
 	return matrix
 
