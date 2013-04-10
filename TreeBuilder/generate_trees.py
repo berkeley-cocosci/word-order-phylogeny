@@ -54,7 +54,7 @@ def get_all_languages(conn, cursor):
 
 def get_most_languages(conn, cursor):
     languages = []
-    cursor.execute('''SELECT wals_code FROM languages WHERE family IN ("Afro-Asiatic", "Austronesian", "Indo-European", "Niger-Congo", "Nilo-Saharan", "Sino-Tibetan")''')
+    cursor.execute('''SELECT wals_code FROM dense_languages WHERE family IN ("Afro-Asiatic", "Austronesian", "Indo-European", "Niger-Congo", "Nilo-Saharan", "Sino-Tibetan")''')
     codes = cursor.fetchall()
     for index, code in enumerate(codes):
          print "Constructing lang %d of %d" %(index, len(codes))
@@ -67,29 +67,20 @@ def get_most_languages(conn, cursor):
 
 def instantiate_dense_language_objects(conn, cursor):
     languages = []
-    cursor.execute('''DROP TABLE dense_data''')
-    cursor.execute('''CREATE TABLE dense_data AS
+    cursor.execute('''CREATE TABLE IF NOT EXISTS dense_data AS
         SELECT wals_code, feature_id, value_id FROM data_points
         WHERE wals_code IN (SELECT wals_code FROM dense_languages) AND feature_id IN (SELECT
 id FROM dense_features)''')
 
-##    cursor.execute('''CREATE TABLE big_dense_table AS
-##        SELECT dense_languages.wals_code, dense_features.id, data_points.value_id FROM
-##        dense_languages CROSS JOIN dense_features CROSS JOIN data_points WHERE
-##        dense_languages.wals_code = data_points.wals_code AND
-##        dense_features.id = data_points.feature_id''')
     cursor.execute('''SELECT wals_code FROM dense_languages''')
     dense_codes = [x[0] for x in cursor.fetchall()]
-    i = 0
-    for code in dense_codes:
-        i += 1
-        print "Working on language %d of %d..." % (i, len(dense_codes))
+    for i, code in enumerate(dense_codes):
         language = language_from_wals_code_factory(code, conn, cursor)
-	if "Order of Subject, Object and Verb" not in language.data:
+        if "Order of Subject, Object and Verb" not in language.data:
             print "Dropping %s because it has no word order data!" % language.name.encode("UTF-8")
-	elif language.data["Order of Subject, Object and Verb"] == 7:
+        elif language.data["Order of Subject, Object and Verb"] == 7:
             print "Dropping %s because it has no basic word order!" % language.name.encode("UTF-8")
-	else:
+        else:
             languages.append(language)
     return languages
 
