@@ -172,6 +172,7 @@ def create_dense_subset(conn, cursor):
     dense_features = cursor.fetchall()
     dense_features = [x[0] for x in dense_features]
     for fid in dense_features:
+        cursor.execute('''INSERT INTO dense_features SELECT * FROM features WHERE id=?''', (fid,))
         cursor.execute('''DELETE FROM dense_languages WHERE wals_code IN
                 (SELECT wals_code FROM data_points WHERE feature_id=? and value_id IS NULL)''', (fid,))
     cursor.execute('''SELECT COUNT(wals_code) FROM dense_languages''')
