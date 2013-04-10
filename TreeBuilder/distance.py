@@ -63,8 +63,8 @@ def genetic_distance(lang1, lang2, comparators):
 			return 2.5
 	return 4.0
 
-def distance_distance(lang1, lang2, comparators, weights):
-	return family_distance(lang1, lang2, comparators, weights) + comparators["location"](lang1.data["location"], lang2.data["location"])
+def geographic_distance(lang1, lang2, comparators):
+	return genetic_distance(lang1, lang2, comparators) + comparators["location"](lang1.data["location"], lang2.data["location"])
 
 def feature_distance(lang1, lang2, comparators):
 	feature_distance = 0
@@ -78,11 +78,10 @@ def feature_distance(lang1, lang2, comparators):
 def build_matrix(languages, method):
 	comparators = build_comparators()
 	feat_data = build_feat_data()
-	weights = generate_feature_weights(feat_data)
-	if method == "family":
-		distance = family_distance
-	elif method == "distance":
-		distance = distance_distance
+	if method == "genetic":
+		distance = genetic_distance
+	elif method == "geographic":
+		distance = geographic_distance
 	if method == "feature":
 		distance = feature_distance
 	matrix = []
