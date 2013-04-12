@@ -40,28 +40,16 @@ def haversine_distance(val1, val2):
         return d
 
 def genetic_distance(lang1, lang2, comparators):
-	if(lang1.data["genus"] and lang2.data["genus"] and lang1.data["genus"] == lang2.data["genus"]):
-		# Known matching genera - minimum distance
-		return 1.0
-	if(lang1.data["subfamily"] and lang2.data["subfamily"] and lang1.data["subfamily"] == lang2.data["subfamily"]):
-		# Known matching subfamilies
-		# What about genera?
-		if(lang1.data["genus"] and lang2.data["genus"] and lang1.data["genus"] != lang2.data["genus"]):
-			# Definitely not matching genera
-			return 2.0
-		else:
-			# Uncertain about genera
-			return 1.5
-	if(lang1.data["family"] == lang2.data["family"]):
-		# Known matching families
-		# What about subfamilies?
-		if(lang1.data["subfamily"] and lang2.data["subfamily"] and lang1.data["subfamily"] != lang2.data["subfamily"]):
-			# Definitely not matching subfamilies
-			return 3.0
-		else:
-			# Uncertain about subfamily
-			return 2.5
-	return 4.0
+    lang1hier = lang1.data["ethnoclass"].split(",")
+    lang2hier = lang2.data["ethnoclass"].split(",")
+    n = min(len(lang1hier), len(lang2hier))*1.0
+    matches = 0
+    for a, b in zip(lang1hier, lang2hier):
+        if a == b:
+            matches += 1
+        else:
+            break
+    return (n-matches)/n
 
 def geographic_distance(lang1, lang2, comparators):
 	return genetic_distance(lang1, lang2, comparators) + comparators["location"](lang1.data["location"], lang2.data["location"])

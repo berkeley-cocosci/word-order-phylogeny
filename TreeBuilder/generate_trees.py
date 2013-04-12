@@ -24,7 +24,7 @@ class Language:
 	self.data = {}
 		
 def get_languages_by_family(conn, cursor, family):
-    cursor.execute('''SELECT wals_code FROM languages WHERE family=?''', (family,))
+    cursor.execute('''SELECT wals_code FROM languages WHERE family=? AND iso_codes IS NOT ?''', (family, ""))
     codes = [code[0] for code in cursor.fetchall()]
     languages = map(lambda(x): language_from_wals_code(conn, cursor, x), codes)
     languages = filter(lambda(x): x.data.get(bwo, None) not in (7,'7',None), languages)
@@ -41,7 +41,7 @@ def language_from_wals_code(conn, cursor, code):
     lang.data["genus"] = results[4]
     lang.data["family"] = results[5]
     lang.data["subfamily"] = results[6]
-    lang.data["isocode"] = results[7]
+    lang.data["iso_codes"] = results[7]
     cursor.execute('''SELECT name, value_id FROM speedyfeatures WHERE wals_code=?''',(code,))
     for x in cursor.fetchall():
         name, value = x
@@ -168,6 +168,19 @@ def report_on_dense_langs(languages):
     fp.write("----------\n")
     fp.close()
 
+def load_ethnologue_classifications():
+    ethnoclass = {}
+    fp = open("../EthnoScrape/classifications.txt")
+    for line in fp:
+        if not line or line.startswith("#"):
+            continue
+        code, classification = [x.strip() for x in line.split(":")]
+        codes = code.split()
+        for code in codes:
+            ethnoclass[code] = classification
+    fp.close()
+    return ethnoclass
+
 def main():
 
     conn = sqlite3.connect("../WALS2SQL/wals.db")
@@ -189,6 +202,41 @@ def main():
     languages = (afrolangs, austrolangs, indolangs, nigerlangs, nilolangs, sinolangs)
     ages = (155000, 6000, (7000, 0.2), 10000, 175000, 6000)
     names = ("afro", "austro", "indo", "niger", "nilo", "sino")
+
+    ethnoclasses = load_ethnologue_classifications()
+    for langs in languages:
+        for lang in langs:
+            if lang.code == "nku":
+                lang.data["iso_codes"] = "xnz"
+            elif lang.code == "nbd":
+                lang.data["iso_codes"] = "dgl"
+            for isocode in lang.data["iso_codes"].split():
+                # Patch WALS's outdated ISO codes...
+                if isocode == "gmo":
+                    isocode = "gmv"
+                elif isocode == "lav":
+                    isocode = "lvs"
+                elif isocode == "nep":
+                    isocode = "npi"
+                elif isocode == "nob":
+                    isocode = "nor"
+                elif isocode == "ori":
+                    isocode = "ory"
+                elif isocode == "daf":
+                    isocode = "dnj"
+                elif isocode == "dan":
+                    isocode = "dnj"
+                elif isocode == "izi":
+                    isocode = "izz"
+                elif isocode == "jar":
+                    isocode = "anq"
+                elif isocode == "baz":
+                    isocode = "tvu"
+                elif isocode == "kln":
+                    isocode = "niq"
+                if isocode in ethnoclasses:
+                    lang.data["ethnoclass"] = ethnoclasses[isocode]
+                    break
 
     if not os.path.exists("generated_trees"):
         os.mkdir("generated_trees")
