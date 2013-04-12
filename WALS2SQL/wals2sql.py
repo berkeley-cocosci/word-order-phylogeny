@@ -163,6 +163,7 @@ def create_dense_subset(conn, cursor):
     cursor.execute('''CREATE TABLE IF NOT EXISTS dense_features(
                 id TEXT PRIMARY KEY,
                 name TEXT)''')
+    cursor.execute('''DELETE FROM dense_features''')
   
     n = 10 
     # Get the n+1 densest features
