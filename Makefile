@@ -1,4 +1,7 @@
-all: wals trees inference
+all: ethno wals trees inference
+
+ethno:
+	cd EthnoScrape; ./ethnoscrape.py
 
 wals:
 	cd WALS2SQL; ./wals2sql.py
