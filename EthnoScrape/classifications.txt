@@ -75,6 +75,7 @@ bjt: Niger-Congo, Atlantic-Congo, Atlantic, Northern, Bak, Balant-Ganja
 tzm: Afro-Asiatic, Berber, Northern, Atlas
 bim: Niger-Congo, Atlantic-Congo, Volta-Congo, North, Gur, Central, Northern, Oti-Volta, Gurma, Moba
 bin: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Edoid, North-Central, Edo-Esan-Ora
+abb: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Bantoid, Southern, Narrow Bantu, Northwest, A, Basaa (A.42)
 bcm: Austronesian, Malayo-Polynesian, Central-Eastern Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, Western Oceanic, Meso Melanesian, New Ireland, South New Ireland-Northwest Solomonic, Piva-Banoni
 bni: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Bantoid, Southern, Narrow Bantu, Northwest, C, Bangi-Ntomba (C.32)
 bqc: Niger-Congo, Mande, Eastern, Eastern, Busa
@@ -135,6 +136,8 @@ dua: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Bantoid, Southern, N
 dud: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Kainji, Western, Duka
 igb: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Nupoid, Ebira-Gade
 ega: Niger-Congo, Atlantic-Congo, Volta-Congo, Kwa, Nyo, Potou-Tano, Ega
+enn: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Edoid, Delta
+eko: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Bantoid, Southern, Narrow Bantu, Central, P, Makua (P.311)
 eng: Indo-European, Germanic, West, English
 eno: Unclassified
 erk: Austronesian, Malayo-Polynesian, Central-Eastern Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, Central-Eastern Oceanic, Remote Oceanic, North and Central Vanuatu, Northeast Vanuatu-Banks Islands, Central Vanuatu
@@ -150,6 +153,7 @@ pym: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Plateau, Southeaster
 gaa: Niger-Congo, Atlantic-Congo, Volta-Congo, Kwa, Nyo, Ga-Dangme
 gla: Indo-European, Celtic, Insular, Goidelic
 adi: Sino-Tibetan, Tibeto-Burman, Central Tibeto-Burman, Tani
+gmv: Afro-Asiatic, Omotic, North, Gonga-Gimojan, Gimojan, Ometo-Gimira, Ometo, Central
 grt: Sino-Tibetan, Tibeto-Burman, Sal, Bodo-Garo-Northern Naga, Bodo-Koch, Bodo-Garo, Garo
 gbp: Niger-Congo, Atlantic-Congo, Volta-Congo, North, Adamawa-Ubangi, Ubangi, Gbaya-Manza-Ngbaka, Central
 gya: Niger-Congo, Atlantic-Congo, Volta-Congo, North, Adamawa-Ubangi, Ubangi, Gbaya-Manza-Ngbaka, Northwest
@@ -618,3 +622,24 @@ zay: Afro-Asiatic, Omotic, North, Gonga-Gimojan, Gimojan, Ometo-Gimira, Ometo, E
 diq: Indo-European, Indo-Iranian, Iranian, Western, Northwestern, Zaza-Gorani
 jna: Sino-Tibetan, Tibeto-Burman, Western Tibeto-Burman, Bodish, West Himalayish, Kinauri
 zul: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Bantoid, Southern, Narrow Bantu, Central, S, Nguni (S.406)
+gmv: Afro-Asiatic, Omotic, North, Gonga-Gimojan, Gimojan, Ometo-Gimira, Ometo, Central
+fra: Indo-European, Italic, Romance, Italo-Western, Western, Gallo-Iberian, Gallo-Romance, Gallo-Rhaetian, Oï  French
+lvs: Indo-European, Baltic, Eastern
+npi: Indo-European, Indo-Iranian, Indo-Aryan, Northern zone, Eastern Pahari
+nor: Indo-European, Germanic, North, East Scandinavian, Danish-Swedish, Danish-Bokmal
+ory: Indo-European, Indo-Iranian, Indo-Aryan, Eastern zone, Oriya
+pwg: Austronesian, Malayo-Polynesian, Central-Eastern Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, Western Oceanic, Papuan Tip, Nuclear, North Papuan Mainland-D'Entrecasteaux, Are-Taupota, Are
+gvs: Austronesian, Malayo-Polynesian, Central-Eastern Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, Western Oceanic, Papuan Tip, Nuclear, North Papuan Mainland-D'Entrecasteaux, Gumawana
+viv: Austronesian, Malayo-Polynesian, Central-Eastern Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, Western Oceanic, Papuan Tip, Nuclear, North Papuan Mainland-D'Entrecasteaux, Bwaidoga
+mvn: Austronesian, Malayo-Polynesian, Central-Eastern Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, Western Oceanic, Papuan Tip, Nuclear, North Papuan Mainland-D'Entrecasteaux, Are-Taupota, Taupota
+num: Austronesian, Malayo-Polynesian, Central-Eastern Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, Central-Eastern Oceanic, Remote Oceanic, Central Pacific, East Fijian-Polynesian, Polynesian, Nuclear, Samoic-Outlier, East Uvean-Niuafo'ou
+tbo: Austronesian, Malayo-Polynesian, Central-Eastern Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, Western Oceanic, Papuan Tip, Nuclear, North Papuan Mainland-D'Entrecasteaux, Are-Taupota, Taupota
+wed: Austronesian, Malayo-Polynesian, Central-Eastern Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, Western Oceanic, Papuan Tip, Nuclear, North Papuan Mainland-D'Entrecasteaux, Are-Taupota, Taupota
+dnj: Niger-Congo, Mande, Eastern, Southeastern, Guro-Tura, Tura-Dan-Mano, Tura-Dan
+izz: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Igboid, Igbo
+anq: Andamanese, South Andamanese
+tvu: Niger-Congo, Atlantic-Congo, Volta-Congo, Benue-Congo, Bantoid, Southern, Mbam, West (A.44)
+mym: Nilo-Saharan, Eastern Sudanic, Eastern, Surmic, South, Southeast, Pastoral, Me'en
+niq: Nilo-Saharan, Eastern Sudanic, Nilotic, Southern, Kalenjin, Nandi-Markweta, Nandi
+dgl: Nilo-Saharan, Eastern Sudanic, Eastern, Nubian, Central, Dongolawi
+xnz: Nilo-Saharan, Eastern Sudanic, Eastern, Nubian, Central

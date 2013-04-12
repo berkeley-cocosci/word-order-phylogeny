@@ -1,3 +1,4 @@
+gmv
 arv
 ach
 adj
@@ -150,7 +151,7 @@ pym
 gaa
 gla
 adi
-gmo
+gmv
 pwg
 grt
 gbp
@@ -274,7 +275,7 @@ lhu
 cnh
 ywt
 laj
-lav
+lvs
 lun
 bdu
 agh
@@ -395,7 +396,7 @@ ndo
 ndv
 nmd
 nsn
-nep
+npi
 new
 nga
 nxg
@@ -416,7 +417,7 @@ nen
 njb
 nhu
 snf
-nob
+nor
 nse
 nto
 nxl nni
@@ -434,7 +435,7 @@ ras
 ssn
 oss
 otr
-ori
+ory
 pqa
 pau
 pan
@@ -622,3 +623,9 @@ zay
 diq
 jna
 zul
+dnj
+anq
+tvu
+niq
+dgl
+xnz
