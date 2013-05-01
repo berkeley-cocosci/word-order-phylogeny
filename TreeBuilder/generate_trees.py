@@ -6,13 +6,14 @@ from sys import exit
 import sqlite3
 from random import shuffle, gauss, sample, normalvariate, lognormvariate
 from copy import deepcopy
+import fileio
 from distance import *
 import dendropy
 
-FUZZES = {}
-FUZZES["geographic"] = 0.05 # was 001
-FUZZES["genetic"] = 0.05
-FUZZES["feature"] = 0.05
+NOISES = {}
+NOISES["geographic"] = 0.05 # was 001
+NOISES["genetic"] = 0.05
+NOISES["feature"] = 0.05
 
 bwo = "Order of Subject, Object and Verb"
 
@@ -48,21 +49,6 @@ def language_from_wals_code(conn, cursor, code):
         lang.data[name] = value
     return lang
 
-def save_translate_file(languages, filename):
-    fp = open(filename, "w", "utf8")
-    fp.write("translate\n");
-    fp.write("%d %s" % (0, languages[0].name)) 
-    for i in range(1,len(languages)):
-        fp.write(",\n%d %s" % (i, languages[i].name)) 
-    fp.write(";\n")
-    fp.close()
-
-def save_multistate_file(languages, filename):
-    fp = open(filename, "w", "utf8")
-    for i, lang in enumerate(languages):
-	fp.write("%d	%d\n" % (i, lang.data[u'Order of Subject, Object and Verb']))
-    fp.close()
-
 def make_trees(languages, age_params, build_method, family_name, treecount):
 
     base_matrix = make_matrix_go_now(languages, build_method)
@@ -74,42 +60,26 @@ def make_trees(languages, age_params, build_method, family_name, treecount):
         else:
             age = gauss(age_params, age_params*0.15/2)
 
-        # Fuzz the matrix up
-        fuzzmatrix = deepcopy(base_matrix)
-        minn = 999999
-        maxx = 0
-        fuzz_size = FUZZES[build_method]
+        # Add random noise
+        matrix = deepcopy(base_matrix)
+        noisevar = NOISES[build_method]
         for j in range(0, len(languages)):
-            for k in range(j, len(languages)):
-                if j == k:
-                    continue
-                fuzzmatrix[j][k] += gauss(0, fuzz_size)
-                fuzzmatrix[k][j] = fuzzmatrix[j][k]
-                #print "Before fuzzing I had: ", matrix[j][k]
-                #print "Now I have: ", fuzzmatrix[j][k]
-                if fuzzmatrix[j][k] < minn:
-                    minn = fuzzmatrix[j][k]
-                if fuzzmatrix[j][k] > maxx:
-                    maxx = fuzzmatrix[j][k]
+            for k in range(j+1, len(languages)):
+                matrix[j][k] += gauss(0, noisevar)
 
         # Normalise the matrix
-        # print "Got min, max: ", minn, maxx
+	norm = max([max(row) for row in matrix])
         for j in range(0, len(languages)):
-            for k in range(j, len(languages)):
-                if j == k:
-                    continue
-                #print "Pre norm: ", fuzzmatrix[j][k]
-                fuzzmatrix[j][k] /= (1.0*maxx)
-                #print "Post norm: ", fuzzmatrix[j][k]
-                fuzzmatrix[k][j] = fuzzmatrix[j][k]
+            for k in range(j+1, len(languages)):
+                matrix[j][k] /= norm
+                matrix[k][j] = matrix[j][k]
 
         # Save the matrix and generate a tree from it
         filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
         directory = os.path.dirname(filename)
         if not os.path.exists(directory):
             os.makedirs(directory)
-        save_matrix(fuzzmatrix, languages, filename+".distance")
-        #run_diags(fuzzmatrix, languages, filename+".diag")
+        fileio.save_matrix(matrix, languages, filename+".distance")
 
         # Use NINJA to do Neighbour Joining
         os.system("java -server -Xmx2G -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.phylip" % (filename, filename))
@@ -144,8 +114,8 @@ def make_trees(languages, age_params, build_method, family_name, treecount):
         os.system("python simplify.py -i %s.phylip -o %s.simple" % (filename, filename))
 
         # Clean up after ourselves...
-        os.unlink("%s.distance" % filename)
-        os.unlink("%s.phylip" % filename)
+        #os.unlink("%s.distance" % filename)
+        #os.unlink("%s.phylip" % filename)
 
 def report_on_dense_langs(languages):
     family_counts = {}
@@ -194,8 +164,8 @@ def main():
         os.mkdir("generated_trees")
 
     for langs, name in zip(languages, names):
-        save_translate_file(langs, "generated_trees/" + name + ".translate")
-        save_multistate_file(langs, "generated_trees/" + name + ".leafdata")
+        fileio.save_translate_file(langs, "generated_trees/" + name + ".translate")
+        fileio.save_multistate_file(langs, "generated_trees/" + name + ".leafdata")
 
     for method in "geographic", "genetic", "feature":
         for langs, age, name in zip(languages, ages, names):
