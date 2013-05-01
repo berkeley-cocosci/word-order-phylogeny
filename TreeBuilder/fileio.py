@@ -38,7 +38,7 @@ def save_matrix(matrix, languages, filename):
     fp.close()
 
 def load_matrix(filename):
-    fp = codecs.open(filename,encoding="utf-8",mode="w")
+    fp = codecs.open(filename,encoding="utf-8",mode="r")
     n = int(fp.readline().strip())
     matrix = []
     for line in fp:
