@@ -159,8 +159,8 @@ def main():
     cursor.execute('''CREATE TEMPORARY TABLE speedyfeatures AS SELECT name, value_id, wals_code FROM data_points INNER JOIN dense_features on data_points.feature_id = dense_features.id''')
     cursor.execute('''CREATE INDEX wals_code_index ON speedyfeatures(wals_code)''')
 
-    austrolangs = get_languages_by_family(conn, cursor, "Austronesian")
     afrolangs = get_languages_by_family(conn, cursor, "Afro-Asiatic")
+    austrolangs = get_languages_by_family(conn, cursor, "Austronesian")
     indolangs = get_languages_by_family(conn, cursor, "Indo-European")
     nigerlangs = get_languages_by_family(conn, cursor, "Niger-Congo")
     nilolangs = get_languages_by_family(conn, cursor, "Nilo-Saharan")
