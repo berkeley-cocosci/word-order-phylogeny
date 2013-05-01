@@ -42,6 +42,6 @@ def load_matrix(filename):
     n = int(fp.readline().strip())
     matrix = []
     for line in fp:
-        matrix.append(line.strip().split())
+        matrix.append(map(float, line.strip().split()))
     fp.close()
     return matrix
