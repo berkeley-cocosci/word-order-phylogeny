@@ -58,10 +58,10 @@ def feature_distance(lang1, lang2, comparators):
 	feature_distance = 0
 	norm = 0
 	for key in lang1.data:
-		if key not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb"]:
+		if key not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "isocode"]:
 			feature_distance += comparators[key](lang1.data[key], lang2.data[key])
 			norm += 1.0
-	return distance_distance(lang1, lang2, comparators) + feature_distance/norm
+	return geographic_distance(lang1, lang2, comparators) + feature_distance/norm
 
 def build_matrix(languages, method):
 	comparators = build_comparators()
@@ -95,18 +95,6 @@ def build_lang_data():
 	fp.close()
 	return data
 
-def save_matrix(matrix, languages, filename):
-	fp = codecs.open(filename,encoding="utf-8",mode="w")
-	fp.write("%d\n" % len(matrix))
-	for i in range(0,len(matrix)):
-		fp.write("%d " % i)
-		for j in range(0, len(matrix)):
-                        if i == j:
-                                fp.write("0.0 ")
-                        else:
-                                fp.write(" %f " % (matrix[i][j]*1))
-		fp.write("\n")
-	fp.close()
 
 def build_feat_data():
 	fp = open("../WALS2SQL/wals_data/features.csv","r")
@@ -145,5 +133,3 @@ def make_matrix_go_now(languages, method):
 	languages = newlangs
 	matrix = build_matrix(languages, method)
 	return matrix
-	#save_matrix(matrix, languages, filename)
-	#run_diags(matrix,languages)

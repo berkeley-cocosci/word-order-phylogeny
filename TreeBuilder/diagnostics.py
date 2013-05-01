@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 def run_diags(matrix, languages, filename):
 
     fp = open(filename, "w")
@@ -23,6 +25,6 @@ def run_diags(matrix, languages, filename):
 
     fp.close()
     #print "Got %d correct out of %d\n" % (hits, len(languages))
-    
+
 if __name__ == "__main__":
     main()
