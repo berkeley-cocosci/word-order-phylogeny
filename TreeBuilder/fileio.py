@@ -38,3 +38,12 @@ def save_matrix(matrix, languages, filename):
                 fp.write(" %f " % (matrix[i][j]))
         fp.write("\n")
     fp.close()
+
+def load_matrix(filename):
+    fp = codecs.open(filename,encoding="utf-8",mode="w")
+    n = int(fp.readline().strip())
+    matrix = []
+    for line in fp:
+        matrix.append(line.strip().split())
+    fp.close()
+    return matrix
