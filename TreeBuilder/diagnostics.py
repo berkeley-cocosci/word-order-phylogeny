@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import os
+
+import fileio
 
 def run_diags(matrix, languages, filename):
 
@@ -27,4 +30,23 @@ def run_diags(matrix, languages, filename):
     #print "Got %d correct out of %d\n" % (hits, len(languages))
 
 if __name__ == "__main__":
+
+    translate = fileio.load_translate_file("generated_trees/indo.translate")
+    print translate
+    langs = ("Dutch", "Danish", "Swedish", "French", "Russian", "Ukranian", "Hindi")
+    distances = {}
+    for method in ("geographic", "genetic", "feature"):
+        for lang in langs:
+            distances[lang] = {}
+        for index in range(0,100):
+            filename = os.path.join("generated_trees", method, "indo", "tree_%d" % (index+1))
+            matrix = fileio.load_matrix(filename)
+            for lang in langs:
+                distances[lang].append(matrix(translate["English"],translate[lang]))
+        for lang in langs:
+            fp = open(method+"_"+lang.lower()+"_diag","w")
+            for dist in distances[lang]:
+                fp.write("%f\n" % dist)
+            fp.close()
+
     main()
