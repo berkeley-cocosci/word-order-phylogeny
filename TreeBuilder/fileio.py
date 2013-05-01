@@ -13,11 +13,9 @@ def load_translate_file(filename):
     langs = {}
     fp = codecs.open(filename, "r", "utf8")
     line = fp.readline().strip()
-    if line is "translate":
-        for line in fp:
-            index, lang = map(strip, line.split())
-            langs[lang] = int(index)
-    fp.close()
+    for line in fp:
+        index, lang = [x.strip() for x in line.split()]
+        langs[lang[:-1]] = int(index)
     return langs
 
 def save_multistate_file(languages, filename):
