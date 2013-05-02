@@ -53,7 +53,7 @@ def feature_distance(lang1, lang2, comparators):
 	feature_distance = 0
 	norm = 0
 	for key in lang1.data:
-		if key not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "isocode"]:
+		if key not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "iso_codes", "ethnoclass"]:
 			feature_distance += comparators[key](lang1.data[key], lang2.data[key])
 			norm += 1.0
 	return geographic_distance(lang1, lang2, comparators) + feature_distance/norm
