@@ -44,7 +44,7 @@ def genetic_distance(lang1, lang2, comparators):
     lang2hier = lang2.data["ethnoclass"].split(",")
     n = min(len(lang1hier), len(lang2hier))*1.0
     matches = [a==b for a, b in zip(lang1hier, lang2hier)].count(True)
-    return 0.5 + (n-matches)/n
+    return 0.16 + (n-matches)/n
 
 def geographic_distance(lang1, lang2, comparators):
 	return genetic_distance(lang1, lang2, comparators) + comparators["location"](lang1.data["location"], lang2.data["location"])
