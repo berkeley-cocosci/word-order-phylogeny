@@ -49,6 +49,31 @@ def language_from_wals_code(conn, cursor, code):
         lang.data[name] = value
     return lang
 
+def has_negative_branches(tree):
+    for edge in tree.get_edge_set():
+        if edge.length and edge.length < 0:
+            return True
+    return False
+
+def fix_negative_branches(tree):
+    while(has_negative_branches(tree)):
+        for edge in tree.get_edge_set():
+            if edge.length and edge.length < 0:
+                parent = edge.head_node
+                negative_child = edge.tail_node
+                for child in parent.child_nodes():
+                    if child != negative_child:
+                        other_child = child
+                if other_child.edge_length > abs(edge.length):
+                    # We can fix this!
+                    other_child.edge.length -= edge.length
+                    edge.length = 0.0
+                    print "********** FIXED A NEGATIVE!!! **********"
+                else:
+                    # Can't fix this
+                    raise Exception("Couldn't fix negative!")
+        return False
+
 def make_trees(languages, age_params, build_method, family_name, treecount):
 
     base_matrix = make_matrix_go_now(languages, build_method)
@@ -90,11 +115,13 @@ def make_trees(languages, age_params, build_method, family_name, treecount):
         fp.close()
         tree = dendropy.Tree.get_from_string(tree_string, "newick")
 
-	# Die on negative branch length
-	for edge in tree.get_edge_set():
-		if edge.length and edge.length < 0:
-			print "Negative branch length %f!  Dying!" % edge.length
-			exit(42)
+        # Die on irreprable negative branch length
+        if has_negative_branches(tree):
+            try:
+                fix_negative_branches(tree)
+            except:
+                print "Negative branch length!  Dying!"
+                exit(42)
 
         # Root at midpoint
         tree.reroot_at_midpoint()
