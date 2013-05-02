@@ -84,7 +84,7 @@ def make_trees(languages, age_params, build_method, family_name, treecount):
         else:
             age = gauss(age_params, age_params*0.15/2)
 
-	# Add random noise
+        # Add random noise
         matrix = deepcopy(base_matrix)
         noisevar = NOISES[build_method]
         for j in range(0, len(languages)):
@@ -93,7 +93,7 @@ def make_trees(languages, age_params, build_method, family_name, treecount):
                 matrix[k][j] = matrix[j][k]
 
         # Normalise the matrix
-	norm = max([max(row) for row in matrix])
+        norm = max([max(row) for row in matrix])
         for j in range(0, len(languages)):
             for k in range(j+1, len(languages)):
                 matrix[j][k] /= norm
