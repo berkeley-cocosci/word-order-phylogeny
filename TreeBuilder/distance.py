@@ -119,12 +119,5 @@ def build_comparators():
 	return comparators
 
 def make_matrix_go_now(languages, method):
-	newlangs = []
-	print "I had: ", len(languages)
-	for lang in languages:
-		if lang.name not in [u'Fiote', u'Jiarong']:
-			newlangs.append(lang)
-	print len(languages), len(newlangs)
-	languages = newlangs
 	matrix = build_matrix(languages, method)
 	return matrix
