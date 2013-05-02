@@ -25,7 +25,7 @@ class Language:
 	self.data = {}
 		
 def get_languages_by_family(conn, cursor, family):
-    cursor.execute('''SELECT wals_code FROM languages WHERE family=? AND iso_codes IS NOT ?''', (family, ""))
+    cursor.execute("""SELECT wals_code FROM languages WHERE family=? AND iso_codes != ''""", (family,))
     codes = [code[0] for code in cursor.fetchall()]
     languages = map(lambda(x): language_from_wals_code(conn, cursor, x), codes)
     languages = filter(lambda(x): x.data.get(bwo, None) not in (7,'7',None), languages)
@@ -54,18 +54,18 @@ def make_trees(languages, age_params, build_method, family_name, treecount):
     base_matrix = make_matrix_go_now(languages, build_method)
 
     for index in range(0, treecount):
-        print index
         if type(age_params) is tuple:
             age = gauss(age_params[0], age_params[1])
         else:
             age = gauss(age_params, age_params*0.15/2)
 
-        # Add random noise
+	# Add random noise
         matrix = deepcopy(base_matrix)
         noisevar = NOISES[build_method]
         for j in range(0, len(languages)):
             for k in range(j+1, len(languages)):
-                matrix[j][k] += gauss(0, noisevar)
+                matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, noisevar))
+                matrix[k][j] = matrix[j][k]
 
         # Normalise the matrix
 	norm = max([max(row) for row in matrix])
@@ -93,7 +93,7 @@ def make_trees(languages, age_params, build_method, family_name, treecount):
 	# Die on negative branch length
 	for edge in tree.get_edge_set():
 		if edge.length and edge.length < 0:
-			print "Negative branch length!  Dying!"
+			print "Negative branch length %f!  Dying!" % edge.length
 			exit(42)
 
         # Root at midpoint
@@ -215,7 +215,7 @@ def main():
         fileio.save_translate_file(langs, "generated_trees/" + name + ".translate")
         fileio.save_multistate_file(langs, "generated_trees/" + name + ".leafdata")
 
-    for method in "geographic", "genetic", "feature":
+    for method in ("genetic", "geographic", "feature"):
         for langs, age, name in zip(languages, ages, names):
             make_trees(langs, age, method, name, 100)
 
