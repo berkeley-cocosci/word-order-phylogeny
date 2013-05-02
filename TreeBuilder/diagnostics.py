@@ -29,24 +29,26 @@ def run_diags(matrix, languages, filename):
     fp.close()
     #print "Got %d correct out of %d\n" % (hits, len(languages))
 
-if __name__ == "__main__":
-
+def main():
     translate = fileio.load_translate_file("generated_trees/indo.translate")
     print translate
-    langs = ("Dutch", "Danish", "Swedish", "French", "Russian", "Ukranian", "Hindi")
+    langs = ("Danish", "Swedish", "French", "Russian", "Ukrainian", "Hindi")
     distances = {}
     for method in ("geographic", "genetic", "feature"):
         for lang in langs:
-            distances[lang] = {}
+            distances[lang] = []
         for index in range(0,100):
-            filename = os.path.join("generated_trees", method, "indo", "tree_%d" % (index+1))
+            filename = os.path.join("generated_trees", method, "indo", "tree_%d.distance" % (index+1))
+            print filename
             matrix = fileio.load_matrix(filename)
             for lang in langs:
-                distances[lang].append(matrix(translate["English"],translate[lang]))
+                distances[lang].append(matrix[translate["English"]][translate[lang]])
         for lang in langs:
             fp = open(method+"_"+lang.lower()+"_diag","w")
             for dist in distances[lang]:
                 fp.write("%f\n" % dist)
             fp.close()
 
+if __name__ == "__main__":
     main()
+
