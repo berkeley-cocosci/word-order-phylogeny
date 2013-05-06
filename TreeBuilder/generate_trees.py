@@ -49,6 +49,31 @@ def language_from_wals_code(conn, cursor, code):
         lang.data[name] = value
     return lang
 
+def has_negative_branches(tree):
+    for edge in tree.get_edge_set():
+        if edge.length and edge.length < 0:
+            return True
+    return False
+
+def fix_negative_branches(tree):
+    while(has_negative_branches(tree)):
+        for edge in tree.get_edge_set():
+            if edge.length and edge.length < 0:
+                parent = edge.head_node
+                negative_child = edge.tail_node
+                for child in parent.child_nodes():
+                    if child != negative_child:
+                        other_child = child
+                if other_child.edge_length > abs(edge.length):
+                    # We can fix this!
+                    other_child.edge.length -= edge.length
+                    edge.length = 0.0
+                    print "********** FIXED A NEGATIVE!!! **********"
+                else:
+                    # Can't fix this
+                    raise Exception("Couldn't fix negative!")
+        return False
+
 class TreeWorker(threading.Thread):
 
     def __init__(self, queue, languages, age_params, build_method, family_name):
