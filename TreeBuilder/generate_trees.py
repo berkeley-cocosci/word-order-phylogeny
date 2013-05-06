@@ -49,73 +49,99 @@ def language_from_wals_code(conn, cursor, code):
         lang.data[name] = value
     return lang
 
-def make_trees(languages, age_params, build_method, family_name, treecount):
+class TreeWorker(threading.Thread):
+
+    def __init__(self, queue, languages, age_params, build_method, family_name):
+        threading.Thread.__init__(self)
+        self.queue = queue
+        self.languages = languages
+        self.age_params = age_params
+        self.build_method = build_method
+        self.family_name = faily_name
+
+    def run(self):
+        while True:
+            index = self.queue.get()
+            make_tree(self.languages, self.age_params, self.build_method, self.family_name, index)
+            self.queue.task_done()
+
+def make_trees(languages, age_params, build_method, family_name, count):
 
     base_matrix = make_matrix_go_now(languages, build_method)
-
+    queue = Queue.Queue()
     for index in range(0, treecount):
-        if type(age_params) is tuple:
-            age = gauss(age_params[0], age_params[1])
-        else:
-            age = gauss(age_params, age_params*0.15/2)
+        queue.put(index)
+
+    for n in range(0,2):
+        worker = TreeWorker(queue, languages, age_params, build_method, family_name)
+        worker.start()
+
+    queue.join()
+
+def make_tree(languages, age_params, build_method, family_name, index):
+
+    if type(age_params) is tuple:
+        age = gauss(age_params[0], age_params[1])
+    else:
+        age = gauss(age_params, age_params*0.15/2)
 
 	# Add random noise
-        matrix = deepcopy(base_matrix)
-        noisevar = NOISES[build_method]
-        for j in range(0, len(languages)):
-            for k in range(j+1, len(languages)):
-                matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, noisevar))
-                matrix[k][j] = matrix[j][k]
+    matrix = deepcopy(base_matrix)
+    noisevar = NOISES[build_method]
+    for j in range(0, len(languages)):
+        for k in range(j+1, len(languages)):
+            matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, noisevar))
+            matrix[k][j] = matrix[j][k]
 
-        # Normalise the matrix
-	norm = max([max(row) for row in matrix])
-        for j in range(0, len(languages)):
-            for k in range(j+1, len(languages)):
-                matrix[j][k] /= norm
-                matrix[k][j] = matrix[j][k]
+    # Normalise the matrix
+    norm = max([max(row) for row in matrix])
+    for j in range(0, len(languages)):
+        for k in range(j+1, len(languages)):
+            matrix[j][k] /= norm
+            matrix[k][j] = matrix[j][k]
 
-        # Save the matrix and generate a tree from it
-        filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
-        directory = os.path.dirname(filename)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        fileio.save_matrix(matrix, languages, filename+".distance")
+    # Save the matrix and generate a tree from it
+    filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
+    directory = os.path.dirname(filename)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    fileio.save_matrix(matrix, languages, filename+".distance")
 
-        # Use NINJA to do Neighbour Joining
-        os.system("java -server -Xmx2G -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.phylip" % (filename, filename))
+    # Use NINJA to do Neighbour Joining
+    os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.phylip" % (filename, filename))
 
-        # Read output of NINJA into Dendropy Tree
-        fp = open("%s.phylip" % filename, "r")
-        tree_string = fp.read()
-        fp.close()
-        tree = dendropy.Tree.get_from_string(tree_string, "newick")
+    # Read output of NINJA into Dendropy Tree
+    fp = open("%s.phylip" % filename, "r")
+    tree_string = fp.read()
+    fp.close()
+    tree = dendropy.Tree.get_from_string(tree_string, "newick")
 
-	# Die on negative branch length
-	for edge in tree.get_edge_set():
-		if edge.length and edge.length < 0:
-			print "Negative branch length %f!  Dying!" % edge.length
-			exit(42)
+    # Die on negative branch length
+    for edge in tree.get_edge_set():
+        if edge.length and edge.length < 0:
+            print "Negative branch length %f!  Dying!" % edge.length
+            exit(42)
 
-        # Root at midpoint
-        tree.reroot_at_midpoint()
+    # Root at midpoint
+    tree.reroot_at_midpoint()
 
-        # Scale to fit age.
-        maxlength = max([leaf.distance_from_root() for leaf in tree.leaf_nodes()])
-        desiredmax = age/10000.0
-        scalefactor = desiredmax / maxlength 
-        tree.scale_edges(scalefactor)
+    # Scale to fit age.
+    maxlength = max([leaf.distance_from_root() for leaf in tree.leaf_nodes()])
+    desiredmax = age/10000.0
+    scalefactor = desiredmax / maxlength 
+    tree.scale_edges(scalefactor)
 
-        # Write newly scaled and rooted tree out to Newick file
-        fp = open("%s.phylip" % filename, "w")
-        fp.write(tree.as_newick_string())
-        fp.close()
+    # Write newly scaled and rooted tree out to Newick file
+    fp = open("%s.phylip" % filename, "w")
+    fp.write(tree.as_newick_string())
+    fp.close()
 
-        # Use simplification script to translate Newick file to Simple file
-        os.system("python simplify.py -i %s.phylip -o %s.simple" % (filename, filename))
+    # Use simplification script to translate Newick file to Simple file
+    os.system("python simplify.py -i %s.phylip -o %s.simple" % (filename, filename))
 
-        # Clean up after ourselves...
-        #os.unlink("%s.distance" % filename)
-        #os.unlink("%s.phylip" % filename)
+    # Clean up after ourselves...
+    #os.unlink("%s.distance" % filename)
+    #os.unlink("%s.phylip" % filename)
 
 def report_on_dense_langs(languages):
     family_counts = {}
