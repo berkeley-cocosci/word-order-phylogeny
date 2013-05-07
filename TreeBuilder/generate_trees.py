@@ -103,7 +103,7 @@ def make_trees(languages, age_params, build_method, family_name, count):
 
     queue.join()
 
-def make_tree(languages, age_params, build_method, family_name, index):
+def make_tree(base_matrix, age_params, build_method, family_name, index):
 
     if type(age_params) is tuple:
         age = gauss(age_params[0], age_params[1])
@@ -113,15 +113,15 @@ def make_tree(languages, age_params, build_method, family_name, index):
 	# Add random noise
     matrix = deepcopy(base_matrix)
     noisevar = NOISES[build_method]
-    for j in range(0, len(languages)):
-        for k in range(j+1, len(languages)):
+    for j in range(0, len(matrix)):
+        for k in range(j+1, len(matrix)):
             matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, noisevar))
             matrix[k][j] = matrix[j][k]
 
     # Normalise the matrix
     norm = max([max(row) for row in matrix])
-    for j in range(0, len(languages)):
-        for k in range(j+1, len(languages)):
+    for j in range(0, len(matrix)):
+        for k in range(j+1, len(matrix)):
             matrix[j][k] /= norm
             matrix[k][j] = matrix[j][k]
 
@@ -130,7 +130,7 @@ def make_tree(languages, age_params, build_method, family_name, index):
     directory = os.path.dirname(filename)
     if not os.path.exists(directory):
         os.makedirs(directory)
-    fileio.save_matrix(matrix, languages, filename+".distance")
+    fileio.save_matrix(matrix, filename+".distance")
 
     # Use NINJA to do Neighbour Joining
     os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.phylip" % (filename, filename))
