@@ -55,7 +55,7 @@ def genetic_distance(lang1, lang2, comparators):
     maxsim = sum([0.5**(i+1) for i in range(0,n)])
     print n, maxsim
     distance = (maxsim - similarity) / maxsim
-    return 0.16 + distance
+    return distance
 
 def geographic_distance(lang1, lang2, comparators):
 	return genetic_distance(lang1, lang2, comparators) + comparators["location"](lang1.data["location"], lang2.data["location"])
