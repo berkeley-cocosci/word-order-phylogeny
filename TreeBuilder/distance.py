@@ -49,10 +49,10 @@ def genetic_distance(lang1, lang2, comparators):
     lang2hier = lang2.data["ethnoclass"].split(",")
     n = min(len(lang1hier), len(lang2hier))*1.0
     similarity = 0
-    for i in range(1,n):
+    for i in range(0,n):
         if lang1hier[i] == lang2hier[i]:
-            similarity += 0.5**i
-    maxsim = sum([0.5**i for i in range(1,n+1)])
+            similarity += 0.5**(i+1)
+    maxsim = sum([0.5**(i+1) for i in range(0,n)])
     print n, maxsim
     distance = (maxsim - similarity) / maxsim
     return 0.16 + distance
