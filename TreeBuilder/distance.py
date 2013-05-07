@@ -5,6 +5,11 @@ from csv import DictReader
 
 from diagnostics import run_diags
 
+MINDIST = {}
+MINDIST["geographic"] = 0.15 # was 001
+MINDIST["genetic"] = 0.30
+MINDIST["feature"] = 0.45
+
 def euclidean_factory(max):
 	def func(x,y):
 		if x == None or y == None:
@@ -80,7 +85,7 @@ def build_matrix(languages, method):
 		for j in range(i,len(languages)):
 			if i == j:
 				continue
-			matrix[i][j] = distance(languages[i],languages[j],comparators)
+			matrix[i][j] = MINDIST[method] + distance(languages[i],languages[j],comparators)
 			matrix[j][i] = matrix[i][j]
 	return matrix
 
