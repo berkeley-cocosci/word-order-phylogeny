@@ -6,6 +6,7 @@ from sys import exit
 import sqlite3
 from random import shuffle, gauss, sample, normalvariate, lognormvariate
 from copy import deepcopy
+
 import fileio
 from distance import *
 import dendropy
@@ -74,34 +75,11 @@ def fix_negative_branches(tree):
                     raise Exception("Couldn't fix negative!")
         return False
 
-class TreeWorker(threading.Thread):
+def make_trees(languages, age_params, build_method, family_name, tree_count):
 
-    def __init__(self, queue, languages, age_params, build_method, family_name):
-        threading.Thread.__init__(self)
-        self.queue = queue
-        self.languages = languages
-        self.age_params = age_params
-        self.build_method = build_method
-        self.family_name = faily_name
-
-    def run(self):
-        while True:
-            index = self.queue.get()
-            make_tree(self.languages, self.age_params, self.build_method, self.family_name, index)
-            self.queue.task_done()
-
-def make_trees(languages, age_params, build_method, family_name, count):
-
-    base_matrix = make_matrix_go_now(languages, build_method)
-    queue = Queue.Queue()
-    for index in range(0, treecount):
-        queue.put(index)
-
-    for n in range(0,2):
-        worker = TreeWorker(queue, languages, age_params, build_method, family_name)
-        worker.start()
-
-    queue.join()
+    base_matrix = build_matrix(languages, build_method)
+    for index in range(0, tree_count):
+        make_tree(base_matrix, age_params, build_method, family_name, index)
 
 def make_tree(base_matrix, age_params, build_method, family_name, index):
 
