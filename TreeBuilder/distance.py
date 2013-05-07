@@ -47,7 +47,7 @@ def haversine_distance(val1, val2):
 def genetic_distance(lang1, lang2, comparators):
     lang1hier = lang1.data["ethnoclass"].split(",")
     lang2hier = lang2.data["ethnoclass"].split(",")
-    n = min(len(lang1hier), len(lang2hier))*1.0
+    n = min(len(lang1hier), len(lang2hier))
     similarity = 0
     for i in range(0,n):
         if lang1hier[i] == lang2hier[i]:
@@ -129,6 +129,3 @@ def build_comparators():
 	comparators["location"] = haversine_distance
 	return comparators
 
-def make_matrix_go_now(languages, method):
-	matrix = build_matrix(languages, method)
-	return matrix
