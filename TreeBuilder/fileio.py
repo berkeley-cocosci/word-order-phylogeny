@@ -24,7 +24,7 @@ def save_multistate_file(languages, filename):
         fp.write("%d\t%d\n" % (i, lang.data[u'Order of Subject, Object and Verb']))
     fp.close()
 
-def save_matrix(matrix, languages, filename):
+def save_matrix(matrix, filename):
     fp = codecs.open(filename,encoding="utf-8",mode="w")
     fp.write("%d\n" % len(matrix))
     for i in range(0,len(matrix)):
