@@ -71,7 +71,6 @@ def feature_distance(lang1, lang2, comparators):
 
 def build_matrix(languages, method):
 	comparators = build_comparators()
-	feat_data = build_feat_data()
 	if method == "genetic":
 		distance = genetic_distance
 	elif method == "geographic":
@@ -98,18 +97,6 @@ def build_lang_data():
 		data[code] = {}
 		for key in row.keys():
 			data[code][key] = row[key] 
-	fp.close()
-	return data
-
-
-def build_feat_data():
-	fp = open("../WALS2SQL/wals_data/features.csv","r")
-	reader = DictReader(fp)
-	data = {}
-	for row in reader:
-		id = row["id"]
-		name = row["name"]
-		data[id] = name
 	fp.close()
 	return data
 
