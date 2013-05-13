@@ -91,7 +91,7 @@ def make_trees(languages, age_params, build_method, family_name, tree_count):
 
 def make_tree(base_matrix, age_params, build_method, family_name, index):
 
-    if type(age_params) is tuple:
+    if type(age_params) == tuple:
         age = gauss(age_params[0], age_params[1])
     else:
         age = gauss(age_params, age_params*0.15/2)
