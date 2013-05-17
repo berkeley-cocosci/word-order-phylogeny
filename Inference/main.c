@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
 
 		/* Record sample details */
 		fprintf(samplesfp, "Sample: %d\n", i+1);
-		fprintf(samplesfp, "Log posterior: %Lf\n", posterior);
+		fprintf(samplesfp, "Log posterior: %f\n", posterior);
 		fprint_matrix(samplesfp, Q);
 		fprintf(logfp, "----------\n");
 
