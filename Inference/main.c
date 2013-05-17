@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
 		fprintf(samplesfp, "Sample: %d\n", i+1);
 		fprintf(samplesfp, "Log posterior: %f\n", posterior);
 		fprint_matrix(samplesfp, Q);
-		fprintf(logfp, "----------\n");
+		fprintf(samplesfp, "----------\n");
 
 		/* Record ancestral distribution */
 		if(multitree) {
