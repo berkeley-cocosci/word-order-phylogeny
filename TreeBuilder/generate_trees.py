@@ -281,8 +281,7 @@ def main():
         fileio.save_translate_file(langs, "generated_trees/" + name + ".translate")
         fileio.save_multistate_file(langs, "generated_trees/" + name + ".leafdata")
 
-    #for method in ("genetic", "geographic", "feature", "combination"):
-    for method in ("geographic", "feature", "combination"):
+    for method in ("genetic", "geographic", "feature", "combination"):
         for langs, age, name in zip(languages, ages, names):
             make_trees(langs, age, method, name, 100)
 
