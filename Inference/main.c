@@ -32,11 +32,12 @@ void count_transitions(FILE *fp, node_t *node, int transcount[][6]) {
 int main(int argc, char **argv) {
 
 	// Variable setup, allocation, etc.
-	FILE *logfp;
+	FILE *logfp, *samplesfp, *ancestralsfp;
 	int i, j, c;
 	int logging = 0;
 	int multitree, treeindex, treeclass;
-	char *treefile, *leaffile, *outfile;
+	char *treefile, *leaffile, *outdir;
+	char filename[1024];
 	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
 	char types[][16] = {"distance", "family", "feature" };
 	int burnin, samples;
@@ -77,7 +78,7 @@ int main(int argc, char **argv) {
 	samples = 1000;
 	treefile = NULL;
 	leaffile = NULL;
-	outfile = "output";
+	outdir = ".";
 	while((c = getopt(argc, argv, "b:c:i:l:ms:t:o:L")) != -1) {
 		switch(c) {
 			case 'b':
@@ -102,7 +103,7 @@ int main(int argc, char **argv) {
 				treefile = optarg;
 				break;
 			case 'o':
-				outfile = optarg;
+				outdir = optarg;
 				break;
 			case 'L':
 				logging = 1;
@@ -125,6 +126,14 @@ int main(int argc, char **argv) {
 	} else {
 		logfp = fopen("/dev/null", "w");
 	}
+	// Open other files
+	strcpy(filename, outdir);
+	strcat(filename, "/samples");
+	samplesfp = fopen(filename, "w")
+	strcpy(filename, outdir);
+	strcat(filename, "/ancestrals");
+	ancestralsfp = fopen(filename, "w")
+	
 	fprintf(logfp, "Default Q:\n");
 	fprint_matrix(logfp, Q);
 
@@ -177,27 +186,39 @@ int main(int argc, char **argv) {
 		}
 		fprintf(logfp, "POSTERTRACK: Sample number %d has log posterior %e.\n", i+1, posterior);
 		fprintf(logfp, "I've got %d of %d samples.\n", i, SAMPLES);
-	        upwards_belprop(logfp, trees, Q, multitree);
-		record_sample(trees, ancestral_sum, stabs, trans, stabs_sum, trans_sum, multitree);
-
-		fprintf(logfp, "Here's the current sample:\n");
 		build_q(Q, stabs, trans);
+	        upwards_belprop(logfp, trees, Q, multitree);
+		//record_sample(trees, ancestral_sum, stabs, trans, stabs_sum, trans_sum, multitree);
+
+		/* Record sample details */
+		fprintf(samplesfp, "Sample: %d\n", i+1);
+		fprintf(samplesfp, "Log posterior: %Lf\n", posterior);
 		fprint_matrix(logfp, Q);
-		fprintf(logfp, "-----\n");
-		fprintf(logfp, "Here's the samples so far:\n");
-		fprint_vector(logfp, stabs_sum);
-		fprint_matrix(logfp, trans_sum);
+		fprintf(logfp, "----------\n");
+
+		/* Record ancestral distribution */
+		if(multitree) {
+			for(j=0; j<6; j++) {
+				fprintf(ancestralsfp, families[j])
+				fprintf(ancestralsfp, ": ")
+				fprint_vector(ancestralsfp, trees[j]->dist);
+			fprintf(ancestralsfp, "----------\n")
+		} else {
+			fprint_vector(ancestralsfp, trees[0]->dist);
+		}
 	}
 
-	normalise_samples(ancestral_sum, stabs_sum, trans_sum, samples, multitree);
-	build_q(Q, stabs_sum, trans_sum);
-	upwards_belprop(logfp, trees, Q, multitree);
+	//normalise_samples(ancestral_sum, stabs_sum, trans_sum, samples, multitree);
+	//build_q(Q, stabs_sum, trans_sum);
+	//upwards_belprop(logfp, trees, Q, multitree);
 
 	fclose(logfp);
+	fclose(samplesfp);
+	fclose(ancestralsfp);
 
 
 	// Save results
-	save_results(outfile, Q, trees, ancestral_sum, ancestral_max, stabs_sum, stabs_max, trans_sum, trans_max, max_posterior, multitree);
+	//save_results(outfile, Q, trees, ancestral_sum, ancestral_max, stabs_sum, stabs_max, trans_sum, trans_max, max_posterior, multitree);
 
 
 }
