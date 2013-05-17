@@ -126,7 +126,7 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
         fileio.save_matrix(matrix, filename+".distance")
 
         # Use NINJA to do Neighbour Joining
-        os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.phylip" % (filename, filename))
+        os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.tree" % (filename, filename))
 
         # Read output of NINJA into Dendropy Tree
         fp = open("%s.phylip" % filename, "r")
@@ -159,21 +159,21 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
     tree.scale_edges(scalefactor)
 
     # Write newly scaled and rooted tree out to Newick file
-    fp = open("%s.phylip" % filename, "w")
+    fp = open("%s.tree" % filename, "w")
     fp.write(tree.as_newick_string())
     fp.close()
 
     # Use simplification script to translate Newick file to Simple file
-    os.system("python simplify.py -i %s.phylip -o %s.simple" % (filename, filename))
+    os.system("python simplify.py -i %s.tree -o %s.simple" % (filename, filename))
 
     # Save tree age
     fp = open("%s.age" % filename, "w")
-    fp.write("%f" % age)
+    fp.write("%f\n" % age)
     fp.close()
     
     # Clean up after ourselves...
     #os.unlink("%s.distance" % filename)
-    #os.unlink("%s.phylip" % filename)
+    #os.unlink("%s.tree" % filename)
 
 def report_on_dense_langs(languages):
     family_counts = {}
