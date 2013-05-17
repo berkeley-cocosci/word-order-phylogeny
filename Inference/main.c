@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 	char filename[1024];
 	char mkcmd[1024];
 	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
-	char types[][16] = {"distance", "family", "feature" };
+	char types[][16] = {"geographic", "genetic", "feature", "combined" };
 	int burnin, samples;
 	unsigned long int seed;
 	node_t **trees = calloc(sizeof(node_t*), 6);
@@ -143,8 +143,8 @@ int main(int argc, char **argv) {
 	/* Build trees */
 	if(multitree) {
 		for(i=0; i<6; i++) {
-			sprintf(treefile, "../TreeBuilder/trees/%s%s%d.simple", families[i], types[treeclass], treeindex);
-			sprintf(leaffile, "../TreeBuilder/trees/%s.leafdata", families[i]);
+			sprintf(treefile, "../TreeBuilder/generated_trees/%s/%s/tree_%d.simple", types[treeclass], families[i], treeindex);
+			sprintf(leaffile, "../TreeBuilder/generated_trees/%s.leafdata", families[i]);
 			trees[i] = build_tree(treefile, leaffile);
 			reset_tree(trees[i]);
 		}	
