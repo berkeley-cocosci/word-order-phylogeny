@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
 		/* Record sample details */
 		fprintf(samplesfp, "Sample: %d\n", i+1);
 		fprintf(samplesfp, "Log posterior: %Lf\n", posterior);
-		fprint_matrix(logfp, Q);
+		fprint_matrix(samplesfp, Q);
 		fprintf(logfp, "----------\n");
 
 		/* Record ancestral distribution */
