@@ -95,7 +95,7 @@ int get_node_count(char *filename) {
 	max = 0;
 	fp = fopen(filename, "r");
 	if(fp == NULL) {
-		printf("Couldn't open that!\n");
+		printf("Couldn't open %s!\n", filename);
 	}
 	while(fscanf(fp, "%d, %d, %d, %f, %s\n", &from, &dir, &to, &length, &string) != EOF) {
 		//printf("%d, %d, %d, %f, %s\n", from, dir, to, length, string);
@@ -114,7 +114,7 @@ void populate_nodes(node_t *nodes, leafdata_t* leafdata, char *filename) {
 	char string[64];
 	fp = fopen(filename, "r");
 	if(fp == NULL) {
-		printf("Couldn't open that!\n");
+		printf("Couldn't open %s!\n", filename);
 	}
 	//printf("fp is initially: %d\n", fp);
 	//printf("EOF is: %d\n", EOF);
