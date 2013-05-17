@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
 	int multitree, treeindex, treeclass;
 	char *treefile, *leaffile, *outdir;
 	char filename[1024];
+	char mkcmd[1024];
 	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
 	char types[][16] = {"distance", "family", "feature" };
 	int burnin, samples;
@@ -127,6 +128,8 @@ int main(int argc, char **argv) {
 		logfp = fopen("/dev/null", "w");
 	}
 	// Open other files
+	sprintf(mkcmd, "mkdir -p %s", outdir);
+	system(mkcmd);
 	strcpy(filename, outdir);
 	strcat(filename, "/samples");
 	samplesfp = fopen(filename, "w");
