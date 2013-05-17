@@ -34,10 +34,6 @@ def get_languages_by_family(conn, cursor, family):
     languages = filter(lambda(x): x.data["ethnoclass"].split(",")[0].strip() == x.data["family"], languages)
     languages = filter(lambda(x): x.data.get(bwo, None) not in (7,'7',None), languages)
     hierlengths = [len(x.data["ethnoclass"].split(",")[1:]) for x in languages ]
-    print family
-    print min(hierlengths)
-    print sum(hierlengths) / len(hierlengths)
-    print max(hierlengths)
     return languages
 
 def language_from_wals_code(conn, cursor, code):
@@ -91,47 +87,67 @@ def make_trees(languages, age_params, build_method, family_name, tree_count):
 
 def make_tree(base_matrix, age_params, build_method, family_name, index):
 
-    if type(age_params) == tuple:
-        age = gauss(age_params[0], age_params[1])
-    else:
-        age = gauss(age_params, age_params*0.15/2)
+    # Age params is a tuple of mean ages
+    # Choose one mean at random (equally weighted mixture model)
+    # Standard deviation is always 20% of the mean
+    shuffle(age_params)
+    age = gauss(age_params[0], age_params[0]*0.25/2)
 
-	# Add random noise
     matrix = deepcopy(base_matrix)
-    noisevar = NOISES[build_method]
-    for j in range(0, len(matrix)):
-        for k in range(j+1, len(matrix)):
-            matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, noisevar))
-            matrix[k][j] = matrix[j][k]
+    failures = 0
+    while failures < 5:
+        # Add random noise
+        for j in range(0, len(matrix)):
+            for k in range(j+1, len(matrix)):
+                matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, matrix[j][k]*0.1))
+                matrix[k][j] = matrix[j][k]
 
-    # Normalise the matrix
-    norm = max([max(row) for row in matrix])
-    for j in range(0, len(matrix)):
-        for k in range(j+1, len(matrix)):
-            matrix[j][k] /= norm
-            matrix[k][j] = matrix[j][k]
+        # Randomly generate a ratio of highest pairwise distanc to lowest,
+        # based on the apparent distribution in authoritative trees
+        r = gauss(12.4, 1.04)
+        print "MY RATIO IS ", r
+        minn = min([min(row) for row in matrix])
+        maxx = max([max(row) for row in matrix])
+        offset = (maxx - r*minn) / (r-1)
 
-    # Save the matrix and generate a tree from it
-    filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
-    directory = os.path.dirname(filename)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    fileio.save_matrix(matrix, filename+".distance")
+        # Normalise the matrix
+        norm = offset + max([max(row) for row in matrix])
+        for j in range(0, len(matrix)):
+            for k in range(j+1, len(matrix)):
+                matrix[j][k] += offset
+                matrix[j][k] /= norm
+                matrix[k][j] = matrix[j][k]
 
-    # Use NINJA to do Neighbour Joining
-    os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.phylip" % (filename, filename))
+        # Save the matrix and generate a tree from it
+        filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        fileio.save_matrix(matrix, filename+".distance")
 
-    # Read output of NINJA into Dendropy Tree
-    fp = open("%s.phylip" % filename, "r")
-    tree_string = fp.read()
-    fp.close()
-    tree = dendropy.Tree.get_from_string(tree_string, "newick")
+        # Use NINJA to do Neighbour Joining
+        os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.phylip" % (filename, filename))
 
-    # Die on negative branch length
-    for edge in tree.get_edge_set():
-        if edge.length and edge.length < 0:
-            print "Negative branch length %f!  Dying!" % edge.length
-            exit(42)
+        # Read output of NINJA into Dendropy Tree
+        fp = open("%s.phylip" % filename, "r")
+        tree_string = fp.read()
+        fp.close()
+        tree = dendropy.Tree.get_from_string(tree_string, "newick")
+
+        # Die on negative branch length
+        if has_negative_branches(tree):
+            try:
+                fix_negative_branches(tree)
+            except:
+                failures += 1
+                continue
+
+        break
+
+    if failures == 5:
+        # We tried 5 times to build a tree without negatives and failed
+        print "Dying due to persistent negative branch problem!"
+        exit(42)
 
     # Root at midpoint
     tree.reroot_at_midpoint()
@@ -150,6 +166,11 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
     # Use simplification script to translate Newick file to Simple file
     os.system("python simplify.py -i %s.phylip -o %s.simple" % (filename, filename))
 
+    # Save tree age
+    fp = open("%s.age" % filename, "w")
+    fp.write("%f" % age)
+    fp.close()
+    
     # Clean up after ourselves...
     #os.unlink("%s.distance" % filename)
     #os.unlink("%s.phylip" % filename)
@@ -249,7 +270,7 @@ def main():
 
 #    report_on_dense_langs(languages)
     languages = (afrolangs, austrolangs, indolangs, nigerlangs, nilolangs, sinolangs)
-    ages = (155000, 6000, (7000, 0.2), 10000, 175000, 6000)
+    ages = ([25000,], [7000,], [6000, 8750], [17500,], [17500,], [7500,])
     names = ("afro", "austro", "indo", "niger", "nilo", "sino")
 
 
@@ -260,7 +281,8 @@ def main():
         fileio.save_translate_file(langs, "generated_trees/" + name + ".translate")
         fileio.save_multistate_file(langs, "generated_trees/" + name + ".leafdata")
 
-    for method in ("genetic", "geographic", "feature"):
+    #for method in ("genetic", "geographic", "feature", "combination"):
+    for method in ("geographic", "feature", "combination"):
         for langs, age, name in zip(languages, ages, names):
             make_trees(langs, age, method, name, 100)
 

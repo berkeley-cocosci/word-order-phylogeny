@@ -47,15 +47,7 @@ def haversine_distance(val1, val2):
         d = 2*d/(2*pi*R)
         return d
 
-def puregeo_lin(lang1, lang2):
-	return haversine_distance(lang1.data["location"], lang2.data["location"])
-
-def puregeo_exp(lang1, lang2):
-	return exp(haversine_distance(lang1.data["location"], lang2.data["location"]))
-
-def param_genetic_factory(params):
-    assert len(params) == 1
-    base = params[0]
+def param_genetic_factory(param):
     def genetic_distance(lang1, lang2):
         lang1hier = lang1.data["ethnoclass"].split(",")
         lang2hier = lang2.data["ethnoclass"].split(",")
@@ -63,63 +55,120 @@ def param_genetic_factory(params):
         similarity = 0
         for i in range(0,n):
             if lang1hier[i] == lang2hier[i]:
-                similarity += base**(i+1)
-        maxsim = sum([base**(i+1) for i in range(0,n)])
+                similarity += param**(i+1)
+        maxsim = sum([param**(i+1) for i in range(0,n)])
         distance = (maxsim - similarity) / maxsim
-        return 0.30 + distance
+        return distance
     return genetic_distance
 
-def geographic_distance(lang1, lang2):
-	return param_genetic_factory((0.5,))(lang1, lang2) + haversine_distance(lang1.data["location"], lang2.data["location"])
+genetic_distance = param_genetic_factory(0.65)
 
-def feature_distance_factory(comparators):
+#def geographic_distance(lang1, lang2):
+#	return param_genetic_factory((0.1, 0.5,))(lang1, lang2) + haversine_distance(lang1.data["location"], lang2.data["location"])
+
+#def weighted_gen_geo_factory(params):
+#    assert len(params) == 2
+#    gen_weight, gen_param = params
+#    gen = param_genetic_factory((gen_param,))
+#    geo = puregeo_lin
+#    return lambda x,y: gen_weight*gen(x,y) + (1-gen_weight)*geo(x,y)
+
+def feature_distance_factory():
     comparators = build_comparators()
     def feature_distance(lang1, lang2):
         feature_distance = 0
         norm = 0
         for key in lang1.data:
-            if key not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "iso_codes", "ethnoclass"]:
-                feature_distance += comparators[key](lang1.data[key], lang2.data[key])
-                norm += 1.0
-        return geographic_distance(lang1, lang2) + feature_distance/norm
+            if key not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "Order of Subject and Verb", "Order of Object and Verb", "iso_codes", "ethnoclass"] and not key.startswith("Relationship between the Order of Object and Verb"):
+               feature_distance += comparators[key](lang1.data[key], lang2.data[key])
+               norm += 1.0
+        return feature_distance/norm
     return feature_distance
 
 def build_matrix_by_method_name(languages, method):
     if method == "genetic":
-        distance = param_genetic_factory((0.5,))
-    elif method == "puregeo_lin":
-        distance = puregeo_lin
-    elif method == "puregeo_exp":
-        distance = puregeo_exp
+        return genetic_matrix(languages)
     elif method == "geographic":
-        distance = geographic_distance
-    if method == "feature":
-        distance = feature_distance_factory()
-    return build_matrix(languages, distance)
+        return linear_geography_matrix(languages)
+    elif method == "feature":
+        return feature_matrix(languages)
+    elif method == "combination":
+        return optimal_combination_matrix(languages)
+
+def linear_geography_factory(languages):
+    done = []
+    maxdist = 0
+    for i in range(0,len(languages)):
+        for j in range(i,len(languages)):
+            if i != j and (j,i) not in done:
+                done.append((i,j))
+                dist = haversine_distance(languages[i].data["location"], languages[j].data["location"])
+                if dist > maxdist:
+                    maxdist = dist
+    def distance(lang1, lang2):
+        return haversine_distance(lang1.data["location"], lang2.data["location"]) / maxdist
+    return distance
 
 def build_matrix(languages, distance_function):
-	matrix = []
-	for x in range(0,len(languages)):
-		matrix.append([0]*len(languages))
-	for i in range(0,len(languages)):
-		for j in range(i,len(languages)):
-			if i == j:
-				continue
-			matrix[i][j] = distance_function(languages[i],languages[j])
-			matrix[j][i] = matrix[i][j]
-	return matrix
+    matrix = []
+    for x in range(0,len(languages)):
+        matrix.append([0]*len(languages))
+    for i in range(0,len(languages)):
+        for j in range(i,len(languages)):
+            if i == j:
+                continue
+            matrix[i][j] = distance_function(languages[i],languages[j])
+            matrix[j][i] = matrix[i][j]
+    return matrix
 
-def build_lang_data():
-	fp = open("languages.csv","r")
-	reader = DictReader(fp)
-	data = {}
-	for row in reader:
-		code = row["wals code"]
-		data[code] = {}
-		for key in row.keys():
-			data[code][key] = row[key] 
-	fp.close()
-	return data
+def linear_geography_matrix(languages):
+    distfunc = linear_geography_factory(languages)
+    return build_matrix(languages, distfunc)
+
+def genetic_matrix(languages):
+    return build_matrix(languages, genetic_distance)
+
+#def genetic_matrix_factory(params):
+#    distfunc = param_genetic_factory(params)
+#    def matrix_builder(languages):
+#        return build_matrix(languages, distfunc)
+#    return matrix_builder
+
+def feature_matrix(languages):
+    distfunc = feature_distance_factory()
+    return build_matrix(languages, distfunc)
+
+def optimal_combination_matrix(languages):
+    geo = linear_geography_factory(languages)
+    gen = genetic_distance
+    feat = feature_distance_factory()
+    def distfunc(l1, l2):
+#        return 0.1115*geo(l1, l2) + 0.7657*gen(l1, l2) + 0.1228*feat(l1, l2)
+        return 0.1348*geo(l1, l2) + 0.6951*gen(l1, l2) + 0.1700*feat(l1, l2)
+    return build_matrix(languages, distfunc)
+
+def weighted_triple_factory(weights):
+    assert len(weights) == 3
+    def matrix_builder(languages):
+        distfunc1 = linear_geography_factory(languages)
+        distfunc2 = genetic_distance
+        distfunc3 = feature_distance_factory()
+        def distfunc(lang1, lang2):
+            return weights[0]*distfunc1(lang1, lang2) + weights[1]*distfunc2(lang1, lang2) + weights[2]*distfunc3(lang1, lang2)
+        return build_matrix(languages, distfunc)
+    return matrix_builder
+
+#def build_lang_data():
+#	fp = open("languages.csv","r")
+#	reader = DictReader(fp)
+#	data = {}
+#	for row in reader:
+#		code = row["wals code"]
+#		data[code] = {}
+#		for key in row.keys():
+#			data[code][key] = row[key] 
+#	fp.close()
+#	return data
 
 def build_comparators():
 	fp = open("comparators.csv","r")
