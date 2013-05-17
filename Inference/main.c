@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
 	// Variable setup, allocation, etc.
 	FILE *logfp, *samplesfp, *ancestralsfp;
-	int i, j, c;
+	int i, j, k, c;
 	int logging = 0;
 	int multitree, treeindex, treeclass;
 	char *treefile, *leaffile, *outdir;
@@ -201,11 +201,17 @@ int main(int argc, char **argv) {
 			for(j=0; j<6; j++) {
 				fprintf(ancestralsfp, families[j]);
 				fprintf(ancestralsfp, ": ");
-				fprint_vector(ancestralsfp, trees[j]->dist);
+				for(k=0; k<5; k++) {
+					fprintf(ancestralsfp, "%f ", trees[j]->dist[k]);
+				}
+				fprintf(ancestralsfp, "%f\n", trees[j]->dist[5]);
 			}
 			fprintf(ancestralsfp, "----------\n");
 		} else {
-			fprint_vector(ancestralsfp, trees[0]->dist);
+			for(k=0; k<5; k++) {
+				fprintf(ancestralsfp, "%f ", trees[0]->dist[k]);
+			}
+			fprintf(ancestralsfp, "%f\n", trees[0]->dist[5]);
 		}
 	}
 
