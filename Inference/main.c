@@ -32,9 +32,9 @@ void count_transitions(FILE *fp, node_t *node, int transcount[][6]) {
 int main(int argc, char **argv) {
 
 	// Variable setup, allocation, etc.
-	FILE *fp;
-	//int fp;
+	FILE *logfp;
 	int i, j, c;
+	int logging = 0;
 	int multitree, treeindex, treeclass;
 	char *treefile, *leaffile, *outfile;
 	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
@@ -59,9 +59,10 @@ int main(int argc, char **argv) {
 
 
 	/* Seed random generator */
-	fp = fopen("/dev/urandom", "r");
-	fread(&seed, sizeof(seed), 1, fp);
-	fclose(fp);
+	/* (Borrow the logfile handler to save variables) */
+	logfp = fopen("/dev/urandom", "r");
+	fread(&seed, sizeof(seed), 1, logfp);
+	fclose(logfp);
 	gsl_rng_set(r, seed);
 
 	/* Initialise some things */
@@ -77,7 +78,7 @@ int main(int argc, char **argv) {
 	treefile = NULL;
 	leaffile = NULL;
 	outfile = "output";
-	while((c = getopt(argc, argv, "b:c:i:l:ms:t:o:")) != -1) {
+	while((c = getopt(argc, argv, "b:c:i:l:ms:t:o:L")) != -1) {
 		switch(c) {
 			case 'b':
 				burnin = atoi(optarg);
@@ -103,6 +104,9 @@ int main(int argc, char **argv) {
 			case 'o':
 				outfile = optarg;
 				break;
+			case 'L':
+				logging = 1;
+				break;
 		}
 	}
 	if(treefile == NULL) treefile = calloc(sizeof(char), 64);
@@ -115,11 +119,14 @@ int main(int argc, char **argv) {
 
 	// TODO check for conflicting options
 
-	// Open chatter file
-	fp = fopen("chatter", "w");
-
-	fprintf(fp, "Default Q:\n");
-	fprint_matrix(fp, Q);
+	// Open log file
+	if(logging) {
+		logfp = fopen("logfile", "w");
+	} else {
+		logfp = fopen("/dev/null", "w");
+	}
+	fprintf(logfp, "Default Q:\n");
+	fprint_matrix(logfp, Q);
 
 	/* Build trees */
 	if(multitree) {
@@ -136,31 +143,31 @@ int main(int argc, char **argv) {
 
 	/* Compute initial posteriors */
 	prior = log(get_prior(stabs, trans));
-	likelihood = get_model_likelihood(fp, trees, Q, multitree);
+	likelihood = get_model_likelihood(logfp, trees, Q, multitree);
 	posterior = prior + likelihood;
 	printf("Initial log posterior: %f\n", posterior);
 
 	/* Burn in */
-	for(i=0; i<burnin; i++) posterior = mcmc_iteration(fp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
+	for(i=0; i<burnin; i++) posterior = mcmc_iteration(logfp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
 	for(i=0; i<samples; i++) {
 		if(gsl_rng_uniform_int(r, 10000) >= 9999) {
 			/* Random restart! */
-			fprintf(fp, "Random restart!\n");
+			fprintf(logfp, "Random restart!\n");
 			initialise_stabs(stabs, 1.0);
 			initialise_trans(r, trans);
 
 			// Pick a new random starting point by unconditionally accepting a few proposals
-			for(j=0; j<25; j++) draw_proposal(fp, r, stabs, stabs, trans, trans);
+			for(j=0; j<25; j++) draw_proposal(logfp, r, stabs, stabs, trans, trans);
 			build_q(Q, stabs, trans);
 			prior = log(get_prior(stabs, trans));
-			likelihood = get_model_likelihood(fp, trees, Q, multitree);
+			likelihood = get_model_likelihood(logfp, trees, Q, multitree);
 			posterior = prior + likelihood;
 			printf("New initial log posterior: %f\n", posterior);
-			for(j=0; j<burnin; j++) posterior = mcmc_iteration(fp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
+			for(j=0; j<burnin; j++) posterior = mcmc_iteration(logfp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
 		}
 
 		for(j=0; j<LAG; j++) {
-			posterior = mcmc_iteration(fp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
+			posterior = mcmc_iteration(logfp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
 			if(posterior > max_posterior) {
 				max_posterior = posterior;
 				printf("Max posterior: %e\n", posterior);
@@ -168,25 +175,25 @@ int main(int argc, char **argv) {
 				matrix_copy(trans, trans_max);
 			}
 		}
-		fprintf(fp, "POSTERTRACK: Sample number %d has log posterior %e.\n", i+1, posterior);
-		fprintf(fp, "I've got %d of %d samples.\n", i, SAMPLES);
-	        upwards_belprop(fp, trees, Q, multitree);
+		fprintf(logfp, "POSTERTRACK: Sample number %d has log posterior %e.\n", i+1, posterior);
+		fprintf(logfp, "I've got %d of %d samples.\n", i, SAMPLES);
+	        upwards_belprop(logfp, trees, Q, multitree);
 		record_sample(trees, ancestral_sum, stabs, trans, stabs_sum, trans_sum, multitree);
 
-		fprintf(fp, "Here's the current sample:\n");
+		fprintf(logfp, "Here's the current sample:\n");
 		build_q(Q, stabs, trans);
-		fprint_matrix(fp, Q);
-		fprintf(fp, "-----\n");
-		fprintf(fp, "Here's the samples so far:\n");
-		fprint_vector(fp, stabs_sum);
-		fprint_matrix(fp, trans_sum);
+		fprint_matrix(logfp, Q);
+		fprintf(logfp, "-----\n");
+		fprintf(logfp, "Here's the samples so far:\n");
+		fprint_vector(logfp, stabs_sum);
+		fprint_matrix(logfp, trans_sum);
 	}
 
 	normalise_samples(ancestral_sum, stabs_sum, trans_sum, samples, multitree);
 	build_q(Q, stabs_sum, trans_sum);
-	upwards_belprop(fp, trees, Q, multitree);
+	upwards_belprop(logfp, trees, Q, multitree);
 
-	fclose(fp);
+	fclose(logfp);
 
 
 	// Save results
