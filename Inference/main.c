@@ -129,10 +129,10 @@ int main(int argc, char **argv) {
 	// Open other files
 	strcpy(filename, outdir);
 	strcat(filename, "/samples");
-	samplesfp = fopen(filename, "w")
+	samplesfp = fopen(filename, "w");
 	strcpy(filename, outdir);
 	strcat(filename, "/ancestrals");
-	ancestralsfp = fopen(filename, "w")
+	ancestralsfp = fopen(filename, "w");
 	
 	fprintf(logfp, "Default Q:\n");
 	fprint_matrix(logfp, Q);
@@ -199,10 +199,11 @@ int main(int argc, char **argv) {
 		/* Record ancestral distribution */
 		if(multitree) {
 			for(j=0; j<6; j++) {
-				fprintf(ancestralsfp, families[j])
-				fprintf(ancestralsfp, ": ")
+				fprintf(ancestralsfp, families[j]);
+				fprintf(ancestralsfp, ": ");
 				fprint_vector(ancestralsfp, trees[j]->dist);
-			fprintf(ancestralsfp, "----------\n")
+			}
+			fprintf(ancestralsfp, "----------\n");
 		} else {
 			fprint_vector(ancestralsfp, trees[0]->dist);
 		}
