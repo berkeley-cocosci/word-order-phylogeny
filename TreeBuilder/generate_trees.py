@@ -129,7 +129,7 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
         os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.tree" % (filename, filename))
 
         # Read output of NINJA into Dendropy Tree
-        fp = open("%s.phylip" % filename, "r")
+        fp = open("%s.tree" % filename, "r")
         tree_string = fp.read()
         fp.close()
         tree = dendropy.Tree.get_from_string(tree_string, "newick")
