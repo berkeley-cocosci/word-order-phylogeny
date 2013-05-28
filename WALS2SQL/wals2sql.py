@@ -147,7 +147,7 @@ def report(conn, cursor):
     for result in cursor.fetchall():
         print result
 
-def create_dense_subset(conn, cursor):
+def create_dense_subset(conn, cursor, n=25):
     cursor.execute('''CREATE TABLE IF NOT EXISTS dense_languages(
                 wals_code TEXT PRIMARY KEY,
                 name TEXT,
@@ -165,18 +165,18 @@ def create_dense_subset(conn, cursor):
                 name TEXT)''')
     cursor.execute('''DELETE FROM dense_features''')
   
-    n = 10 
-    # Get the n+1 densest features
-    # Why n+1?  Because Basic Word Order is dense, but we don't want to use it for our purposes
-    # So if we grab the n+1 densest and exclude BWO, we get the n densest *usable* features
-    cursor.execute('''SELECT id FROM features INNER JOIN langs_per_feature_counts ON features.id = langs_per_feature_counts.feature_id ORDER BY count DESC LIMIT ?''', (n+1,))
+    # Get the n+6 densest features
+    # Why n+6?  Because six of the densest feaures in WALS are either BWO or
+    # heavily correlated with BWO, so we don't want to use it for our purposes
+    # So if we grab the n+6 densest and exclude BWO and friends, we get the
+    # n densest *usable* features
+    cursor.execute('''SELECT id FROM features INNER JOIN langs_per_feature_counts ON features.id = langs_per_feature_counts.feature_id ORDER BY count DESC LIMIT ?''', (n+6,))
     dense_features = cursor.fetchall()
     dense_features = [x[0] for x in dense_features]
     for fid in dense_features:
         cursor.execute('''INSERT INTO dense_features SELECT * FROM features WHERE id=?''', (fid,))
         cursor.execute('''DELETE FROM dense_languages WHERE wals_code IN
                 (SELECT wals_code FROM data_points WHERE feature_id=? and value_id IS NULL)''', (fid,))
-    cursor.execute('''SELECT COUNT(wals_code) FROM dense_languages''')
 
 
 def main():
@@ -206,15 +206,9 @@ def main():
     # Find dense subset of language x feature matrix
     create_dense_subset(conn, cursor)
     
-#    languages = instantiate_dense_language_objects(conn, cursor)
-
     conn.commit()
     cursor.close()
     conn.close()
-
-    
-#    save_translate_file(languages)
-#    save_multistate_file(languages)
 
 if __name__ == "__main__":
     main()
