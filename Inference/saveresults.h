@@ -1,4 +1,4 @@
-void save_results(char *outfile, gsl_matrix *Q, node_t **trees, gsl_vector **ancestral_sum, gsl_vector **ancestral_max, gsl_vector *stabs_sum, gsl_vector *stabs_max, gsl_matrix *trans_sum, gsl_matrix *trans_max, double max_posterior, int multitree) {
+void save_results(char *outfile, gsl_matrix *Q, gsl_vector **ancestral_sum, gsl_vector **ancestral_max, gsl_vector *stabs_sum, gsl_vector *stabs_max, gsl_matrix *trans_sum, gsl_matrix *trans_max, double max_posterior, int multitree) {
 
 	int i;
 	FILE *fp;

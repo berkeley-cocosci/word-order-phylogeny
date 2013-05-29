@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 	char filename[1024];
 	char mkcmd[1024];
 	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
-	char types[][16] = {"geographic", "genetic", "feature", "combined" };
+	char types[][16] = {"geographic", "genetic", "feature", "combination" };
 	int burnin, samples;
 	unsigned long int seed;
 	node_t **trees = calloc(sizeof(node_t*), 6);
@@ -56,7 +56,11 @@ int main(int argc, char **argv) {
 	gsl_matrix *trans_dash = gsl_matrix_alloc(6, 6);
 	gsl_matrix *trans_sum = gsl_matrix_alloc(6, 6);
 	gsl_matrix *trans_max = gsl_matrix_alloc(6, 6);
+	gsl_vector_complex *evals = gsl_vector_complex_alloc(6);
+        gsl_matrix_complex *evecs = gsl_matrix_complex_alloc(6,6);
+        gsl_matrix_complex *evecs_inv = gsl_matrix_complex_alloc(6,6);
 	gsl_matrix *Q = gsl_matrix_alloc(6, 6);
+	gsl_matrix *P = gsl_matrix_alloc(6, 6);
 	gsl_rng *r = gsl_rng_alloc(gsl_rng_taus);
 
 
@@ -111,8 +115,8 @@ int main(int argc, char **argv) {
 				break;
 		}
 	}
-	if(treefile == NULL) treefile = calloc(sizeof(char), 64);
-	if(leaffile == NULL) leaffile = calloc(sizeof(char), 64);
+	if(treefile == NULL) treefile = calloc(sizeof(char), 128);
+	if(leaffile == NULL) leaffile = calloc(sizeof(char), 128);
 	for(i=0; i<6; i++) {
 		if(i>0 && multitree == 0) break;
 		ancestral_sum[i] = gsl_vector_alloc(6);
@@ -191,12 +195,16 @@ int main(int argc, char **argv) {
 		fprintf(logfp, "I've got %d of %d samples.\n", i, SAMPLES);
 		build_q(Q, stabs, trans);
 	        upwards_belprop(logfp, trees, Q, multitree);
-		//record_sample(trees, ancestral_sum, stabs, trans, stabs_sum, trans_sum, multitree);
+		decompose_q(Q, evals, evecs, evecs_inv);
+		compute_p(evals, evecs, evecs_inv, 0.1, P);
+		record_sample(trees, ancestral_sum, stabs, trans, stabs_sum, trans_sum, multitree);
 
 		/* Record sample details */
-		fprintf(samplesfp, "Sample: %d\n", i+1);
 		fprintf(samplesfp, "Log posterior: %f\n", posterior);
-		fprint_matrix(samplesfp, Q);
+		fprintf(samplesfp, "Sample: %d\n", i+1);
+		fprint_vector(samplesfp, stabs);
+		fprint_matrix(samplesfp, trans);
+		fprint_matrix(samplesfp, P);
 		fprintf(samplesfp, "----------\n");
 
 		/* Record ancestral distribution */
@@ -218,17 +226,18 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	//normalise_samples(ancestral_sum, stabs_sum, trans_sum, samples, multitree);
-	//build_q(Q, stabs_sum, trans_sum);
+	normalise_samples(ancestral_sum, stabs_sum, trans_sum, samples, multitree);
+	build_q(Q, stabs_sum, trans_sum);
 	//upwards_belprop(logfp, trees, Q, multitree);
 
 	fclose(logfp);
 	fclose(samplesfp);
 	fclose(ancestralsfp);
 
-
 	// Save results
-	//save_results(outfile, Q, trees, ancestral_sum, ancestral_max, stabs_sum, stabs_max, trans_sum, trans_max, max_posterior, multitree);
+	strcpy(filename, outdir);
+	strcat(filename, "/summary");
+	save_results(filename, Q, ancestral_sum, ancestral_max, stabs_sum, stabs_max, trans_sum, trans_max, max_posterior, multitree);
 
 
 }
