@@ -55,9 +55,9 @@ def main():
 
     for method in "geographic genetic feature combination".split():
         for family in "afro austro indo niger nilo sino".split():
-            summary = parse_summary_file("results/individual-q/%s/%s/summary" % (method, family))
+            summary = parse_summary_file("../Inference/results/individual-q/%s/%s/summary" % (method, family))
             fp.write(format_summary(summary, method, family))
-        summary = parse_summary_file("results/common-q/%s/summary" % (method,), multitree=True)
+        summary = parse_summary_file("../Inference/results/common-q/%s/summary" % (method,), multitree=True)
     fp.close()
 
 if __name__ == "__main__":
