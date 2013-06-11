@@ -61,7 +61,7 @@ def param_genetic_factory(param):
         return distance
     return genetic_distance
 
-genetic_distance = param_genetic_factory(0.65)
+genetic_distance = param_genetic_factory(0.713)
 
 #def geographic_distance(lang1, lang2):
 #	return param_genetic_factory((0.1, 0.5,))(lang1, lang2) + haversine_distance(lang1.data["location"], lang2.data["location"])
@@ -73,16 +73,30 @@ genetic_distance = param_genetic_factory(0.65)
 #    geo = puregeo_lin
 #    return lambda x,y: gen_weight*gen(x,y) + (1-gen_weight)*geo(x,y)
 
-def feature_distance_factory():
+def optimal_feature_factory():
+
+    weights = {}
+    fp = open("optimal_feature_weights", "r")
+    for line in fp:
+        weight, feature = line.split("\t")
+        weight = float(weight.strip())
+        feature = feature.strip()
+        weights[feature] = weight
+    fp.close()
+    return feature_factory(weights)
+
+def feature_factory(weights=None):
     comparators = build_comparators()
+    if not weights:
+        weights = {}
     def feature_distance(lang1, lang2):
-        feature_distance = 0
+        dist = 0
         norm = 0
         for key in lang1.data:
             if key not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "Order of Subject and Verb", "Order of Object and Verb", "iso_codes", "ethnoclass"] and not key.startswith("Relationship between the Order of Object and Verb"):
-               feature_distance += comparators[key](lang1.data[key], lang2.data[key])
-               norm += 1.0
-        return feature_distance/norm
+               dist += weights.get(key, 1.0)*comparators[key](lang1.data[key], lang2.data[key])
+               norm += weights.get(key, 1.0)
+        return dist/norm
     return feature_distance
 
 def build_matrix_by_method_name(languages, method):
@@ -121,6 +135,10 @@ def build_matrix(languages, distance_function):
             matrix[j][i] = matrix[i][j]
     return matrix
 
+def optimal_feature_matrix(languages):
+    distfunc = optimal_feature_factory()
+    return build_matrix(languages, distfunc)
+
 def linear_geography_matrix(languages):
     distfunc = linear_geography_factory(languages)
     return build_matrix(languages, distfunc)
@@ -128,23 +146,39 @@ def linear_geography_matrix(languages):
 def genetic_matrix(languages):
     return build_matrix(languages, genetic_distance)
 
+
 #def genetic_matrix_factory(params):
 #    distfunc = param_genetic_factory(params)
 #    def matrix_builder(languages):
 #        return build_matrix(languages, distfunc)
 #    return matrix_builder
 
+def param_genetic_matrix_factory(param):
+    def matrix_builder(languages):
+        distfunc = param_genetic_factory(param)
+        return build_matrix(languages, distfunc)
+    return matrix_builder
+
+
+def weighted_feature_factory(weights):
+    def matrix_builder(languages):
+        distfunc = feature_factory(weights)
+        return build_matrix(languages, distfunc)
+    return matrix_builder
+
 def feature_matrix(languages):
-    distfunc = feature_distance_factory()
+    distfunc = feature_factory()
     return build_matrix(languages, distfunc)
 
 def optimal_combination_matrix(languages):
     geo = linear_geography_factory(languages)
     gen = genetic_distance
-    feat = feature_distance_factory()
+    feat = optimal_feature_factory()
     def distfunc(l1, l2):
 #        return 0.1115*geo(l1, l2) + 0.7657*gen(l1, l2) + 0.1228*feat(l1, l2)
-        return 0.1348*geo(l1, l2) + 0.6951*gen(l1, l2) + 0.1700*feat(l1, l2)
+#        return 0.1348*geo(l1, l2) + 0.6951*gen(l1, l2) + 0.1700*feat(l1, l2)
+#        return 0.1299*geo(l1, l2) + 0.6549*gen(l1, l2) + 0.2152*feat(l1, l2)
+        return 0.1372*geo(l1, l2) + 0.6494*gen(l1, l2) + 0.2135*feat(l1, l2)
     return build_matrix(languages, distfunc)
 
 def weighted_triple_factory(weights):
@@ -152,7 +186,7 @@ def weighted_triple_factory(weights):
     def matrix_builder(languages):
         distfunc1 = linear_geography_factory(languages)
         distfunc2 = genetic_distance
-        distfunc3 = feature_distance_factory()
+        distfunc3 = optimal_feature_factory()
         def distfunc(lang1, lang2):
             return weights[0]*distfunc1(lang1, lang2) + weights[1]*distfunc2(lang1, lang2) + weights[2]*distfunc3(lang1, lang2)
         return build_matrix(languages, distfunc)

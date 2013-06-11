@@ -96,21 +96,29 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
     matrix = deepcopy(base_matrix)
     failures = 0
     while failures < 5:
-        # Add random noise
+        # Normalise the matrix
+        norm = max([max(row) for row in matrix])
         for j in range(0, len(matrix)):
             for k in range(j+1, len(matrix)):
-                matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, matrix[j][k]*0.1))
+                matrix[j][k] /= norm
+
+        # Add random noise
+        # The biggest distance is now 1.0
+        # Let's set our Gaussian parameters so that we very rarely add/take more than 0.2
+        # to/from a distance.  3sigma = 0.2 => sigma = 0.0666
+        for j in range(0, len(matrix)):
+            for k in range(j+1, len(matrix)):
+                matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, 0.0666))
                 matrix[k][j] = matrix[j][k]
 
         # Randomly generate a ratio of highest pairwise distanc to lowest,
         # based on the apparent distribution in authoritative trees
         r = gauss(12.4, 1.04)
-        print "MY RATIO IS ", r
         minn = min([min(row) for row in matrix])
         maxx = max([max(row) for row in matrix])
         offset = (maxx - r*minn) / (r-1)
 
-        # Normalise the matrix
+        # Add offset and renormalise matrix in one go
         norm = offset + max([max(row) for row in matrix])
         for j in range(0, len(matrix)):
             for k in range(j+1, len(matrix)):
@@ -281,7 +289,8 @@ def main():
         fileio.save_translate_file(langs, "generated_trees/" + name + ".translate")
         fileio.save_multistate_file(langs, "generated_trees/" + name + ".leafdata")
 
-    for method in ("genetic", "geographic", "feature", "combination"):
+    #for method in ("genetic", "geographic", "feature", "combination"):
+    for method in ("combination",):
         for langs, age, name in zip(languages, ages, names):
             make_trees(langs, age, method, name, 100)
 

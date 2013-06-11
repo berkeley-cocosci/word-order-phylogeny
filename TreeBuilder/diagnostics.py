@@ -42,6 +42,7 @@ def main():
             print filename
             matrix = fileio.load_matrix(filename)
             for lang in langs:
+                print translate["English"], translate[lang], matrix[translate["English"]][translate[lang]]
                 distances[lang].append(matrix[translate["English"]][translate[lang]])
         for lang in langs:
             fp = open(method+"_"+lang.lower()+"_diag","w")
