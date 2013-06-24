@@ -41,6 +41,7 @@ struct summary_context {
 	gsl_matrix *fuzz_prior_ancestral_map;
 	gsl_matrix *stationary_prior_ancestral_sum;
 	gsl_matrix *stationary_prior_ancestral_map;
+	gsl_matrix **sliding_fuzz_ancestral_sum;
 	float statistics[20];
 	float sample_count;
 	float max_log_post;
@@ -66,6 +67,8 @@ void alloc_summary(summary_t *s) {
 	s->fuzz_prior_ancestral_map = gsl_matrix_alloc(6, 6);
 	s->stationary_prior_ancestral_sum = gsl_matrix_alloc(6, 6);
 	s->stationary_prior_ancestral_map = gsl_matrix_alloc(6, 6);
+	s->sliding_fuzz_ancestral_sum = calloc(100, sizeof(gsl_matrix*));
+	for(i=0;i<100;i++) s->sliding_fuzz_ancestral_sum[i] = gsl_matrix_alloc(6, 6);
 }
 
 void reset_summary(summary_t *s) {
@@ -86,6 +89,7 @@ void reset_summary(summary_t *s) {
 	gsl_matrix_set_zero(s->fuzz_prior_ancestral_map);
 	gsl_matrix_set_zero(s->stationary_prior_ancestral_sum);
 	gsl_matrix_set_zero(s->stationary_prior_ancestral_map);
+	for(i=0;i<100;i++) gsl_matrix_set_zero(s->sliding_fuzz_ancestral_sum[i]);
 	for(i=0;i<10;i++) s->statistics[i] = 0.0;
 	s->sample_count = 0;
 	s->max_log_post = -1000000000;
@@ -101,6 +105,7 @@ void normalise_summary(summary_t *s) {
 	gsl_matrix_scale(s->ancestral_sum, 1.0 / s->sample_count);
 	gsl_matrix_scale(s->fuzz_prior_ancestral_sum, 1.0 / s->sample_count);
 	gsl_matrix_scale(s->stationary_prior_ancestral_sum, 1.0 / s->sample_count);
+	for(i=0;i<100;i++) gsl_matrix_scale(s->sliding_fuzz_ancestral_sum[i], 1.0 / s->sample_count);
 	for(i=0;i<10;i++) s->statistics[i] /= s->sample_count;
 }
 
@@ -114,6 +119,7 @@ void add_summaries(summary_t *target, summary_t *source) {
 	gsl_matrix_add(target->ancestral_sum, source->ancestral_sum);
 	gsl_matrix_add(target->fuzz_prior_ancestral_sum, source->fuzz_prior_ancestral_sum);
 	gsl_matrix_add(target->stationary_prior_ancestral_sum, source->stationary_prior_ancestral_sum);
+	for(i=0;i<100;i++) gsl_matrix_add(target->sliding_fuzz_ancestral_sum[i], source->sliding_fuzz_ancestral_sum[i]);
 	for(i=0;i<10;i++) target->statistics[i] += source->statistics[i];
 	target->sample_count++;
 	if(source->max_log_post > target->max_log_post) {
@@ -174,7 +180,7 @@ void handle_directory(char *directory, summary_t *s, int multitree) {
 	char junkbuffer[1024];
 	unsigned long int seed;
 	int sample, maxsample;
-	float logpost, norm;
+	float logpost, norm, t, years;
 	float row[6];
 	gsl_vector_complex *evals = gsl_vector_complex_alloc(6);
         gsl_matrix_complex *evecs = gsl_matrix_complex_alloc(6,6);
@@ -187,6 +193,7 @@ void handle_directory(char *directory, summary_t *s, int multitree) {
 	gsl_matrix *prior_ancestral = gsl_matrix_alloc(6, 6);
 	gsl_matrix *log_prior_ancestral = gsl_matrix_alloc(6, 6);
 	gsl_vector *fuzz_prior = gsl_vector_alloc(6);
+	gsl_vector *dist = gsl_vector_alloc(6);
 
 	strcpy(filename, directory);
 	strcat(filename, "/samples");
@@ -270,25 +277,16 @@ void handle_directory(char *directory, summary_t *s, int multitree) {
 		if(multitree) {
 			for(i=0; i<6; i++) {
 				for(j=0; j<6; j++) gsl_matrix_set(prior_ancestral, i, j, gsl_matrix_get(ancestral, i, j)*gsl_vector_get(fuzz_prior, j));
-//				printf("Unnormed ancestral:\n"); fprint_matrix(stdout, prior_ancestral);
 				norm = 0;
 				for(j=0; j<6; j++) norm += gsl_matrix_get(prior_ancestral, i, j);
-//				printf("Norm: %f\n", norm);
 				for(j=0; j<6; j++) gsl_matrix_set(prior_ancestral, i, j, gsl_matrix_get(prior_ancestral, i, j) / norm);
-//				printf("Ratiod matrices:\n"); fprint_matrix(stdout, prior_ancestral);
 
 			}
 		} else {
 			for(j=0; j<6; j++) gsl_matrix_set(prior_ancestral, 0, j, gsl_matrix_get(ancestral, 0, j)*gsl_vector_get(fuzz_prior, j));
-//			printf("Unnormed ancestral:\n"); fprint_matrix(stdout, prior_ancestral);
 			norm = 0;
 			for(j=0; j<6; j++) norm += gsl_matrix_get(prior_ancestral, 0, j);
-//			printf("Norm: %f\n", norm);
-//			for(j=0; j<6; j++) gsl_matrix_set(prior_ancestral, 0, j, gsl_matrix_get(prior_ancestral, 0, j) / norm);
 			for(j=0; j<6; j++) gsl_matrix_set(prior_ancestral, 0, j, gsl_matrix_get(prior_ancestral, 0, j) / norm);
-//			printf("Ratiod matrices:\n"); fprint_matrix(stdout, prior_ancestral);
-//			for(j=0; j<6; j++) gsl_matrix_set(prior_ancestral, 0, j, log(gsl_matrix_get(prior_ancestral, 0, j)));
-//			printf("Logged matrices:\n"); fprint_matrix(stdout, prior_ancestral);
 		}
 		gsl_matrix_add(s->fuzz_prior_ancestral_sum, prior_ancestral);
 
@@ -308,6 +306,41 @@ void handle_directory(char *directory, summary_t *s, int multitree) {
 			for(j=0; j<6; j++) gsl_matrix_set(prior_ancestral, 0, j, gsl_matrix_get(prior_ancestral, 0, j) / norm);
 		}
 		gsl_matrix_add(s->stationary_prior_ancestral_sum, prior_ancestral);
+
+		// Sliding prior stuff
+		//
+		for(i=0;i<100;i++) {
+			// Compute prior
+			years = i*2500/99.0;
+			t = years / 10000.0;
+			compute_p(evals, evecs, evecs_inv, t, P);
+			gsl_vector_set_zero(dist);
+			for(j=0; j<6; j++) {
+				for(k=0; k<6; k++) {
+					gsl_vector_set(dist, j, gsl_vector_get(dist, j) + gsl_matrix_get(P, k, j));
+				}
+			}
+			norm = 0.0;
+			for(j=0;j<6;j++) norm += gsl_vector_get(dist, j);
+			gsl_vector_scale(dist, 1.0/norm);
+
+			// Multiply likelihood by prior
+			if(multitree) {
+				for(j=0; j<6; j++) {
+					for(k=0; k<6; k++) gsl_matrix_set(prior_ancestral, j, k, gsl_matrix_get(ancestral, j, k)*gsl_vector_get(dist, k));
+					norm = 0;
+					for(k=0; k<6; k++) norm += gsl_matrix_get(prior_ancestral, j, k);
+					for(k=0; k<6; k++) gsl_matrix_set(prior_ancestral, j, k, gsl_matrix_get(prior_ancestral, j, k) / norm);
+
+				}
+			} else {
+				for(j=0; j<6; j++) gsl_matrix_set(prior_ancestral, 0, j, gsl_matrix_get(ancestral, 0, j)*gsl_vector_get(dist, j));
+				norm = 0;
+				for(j=0; j<6; j++) norm += gsl_matrix_get(prior_ancestral, 0, j);
+				for(j=0; j<6; j++) gsl_matrix_set(prior_ancestral, 0, j, gsl_matrix_get(prior_ancestral, 0, j) / norm);
+			}
+			gsl_matrix_add(s->sliding_fuzz_ancestral_sum[i], prior_ancestral);
+		}
 
 		// MAP stuff
 		if(logpost > s->max_log_post) {
@@ -418,6 +451,32 @@ void write_summary(char *directory, summary_t *s, int multitree) {
 	fclose(fp);
 }
 
+void dump_long_prior(char *directory, summary_t *s, int multitree) {
+	char filename[1024];
+	FILE *fp;
+	int i, j;
+
+	/* Write summary file */
+	strcpy(filename, directory);
+	strcat(filename, "/sliding_prior");
+	fp = fopen(filename, "w");
+
+	if(multitree) {
+		for(i=0;i<100;i++) {
+			fprint_matrix(fp, s->sliding_fuzz_ancestral_sum[i]);
+			fprintf(fp,"----------\n");
+		}
+	} else {
+		for(i=0;i<100;i++) {
+			fprintf(fp, "%f", gsl_matrix_get(s->sliding_fuzz_ancestral_sum[i], 0, 0));
+			for(j=1;j<6;j++) fprintf(fp, " %f", gsl_matrix_get(s->sliding_fuzz_ancestral_sum[i], 0, j));
+			fprintf(fp, "\n");
+		}
+	}
+
+	fclose(fp);
+}
+
 int main(int argc, char **argv) {
 
 	// Variable setup, allocation, etc.
@@ -430,6 +489,24 @@ int main(int argc, char **argv) {
 
 	alloc_summary(&global_s);
 	alloc_summary(&local_s);
+	
+	/* Common Q data */
+	for(method=0; method<4; method++) {
+		reset_summary(&global_s);
+		for(tree=1; tree<101; tree++) {
+			reset_summary(&local_s);
+			sprintf(filename, "results/common-q/%s/trees_%d/", types[method], tree);
+			printf("Handling %s\n", filename);
+			handle_directory(filename, &local_s, 1);
+			normalise_summary(&local_s);
+			write_summary(filename, &local_s, 1);
+			add_summaries(&global_s, &local_s);
+		}
+	normalise_summary(&global_s);
+	sprintf(filename, "results/common-q/%s/", types[method]);
+	write_summary(filename, &global_s, 1);
+	dump_long_prior(filename, &global_s, 1);
+	}
 
 	/* Individual Q data */
 	for(family=0; family<6; family++) {
@@ -447,23 +524,8 @@ int main(int argc, char **argv) {
 		normalise_summary(&global_s);
 		sprintf(filename, "results/individual-q/%s/%s/", types[method], families[family]);
 		write_summary(filename, &global_s, 0);
+		dump_long_prior(filename, &global_s, 0);
 		}
 	}
 
-	/* Common Q data */
-	for(method=0; method<4; method++) {
-		reset_summary(&global_s);
-		for(tree=1; tree<101; tree++) {
-			reset_summary(&local_s);
-			sprintf(filename, "results/common-q/%s/trees_%d/", types[method], tree);
-			printf("Handling %s\n", filename);
-			handle_directory(filename, &local_s, 1);
-			normalise_summary(&local_s);
-			write_summary(filename, &local_s, 1);
-			add_summaries(&global_s, &local_s);
-		}
-	normalise_summary(&global_s);
-	sprintf(filename, "results/common-q/%s/", types[method]);
-	write_summary(filename, &global_s, 1);
-	}
 }
