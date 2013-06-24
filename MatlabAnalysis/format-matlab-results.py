@@ -1,3 +1,28 @@
+import itertools
+
+def parse_ubertree():
+    ages = []
+    dists = []
+    fp = open("../Inference/ubertree_dists", "r")
+    for line in fp:
+        age, dist = line.strip().split(",",1)
+        ages.append(float(age))
+        dists.append(map(float, dist.split(",")))
+    fp.close()
+    return ages, dists
+   
+def parse_sliding_prior_file():
+    posteriors = {}
+    for family in "afro austro indo niger nilo sino".split():
+        posteriors[family] = []
+    fp = open("../Inference/results/common-q/combination/sliding_prior", "r")
+
+    for family, line in zip(itertools.cycle("afro austro indo niger nilo sino junk".split()), fp.readlines()):
+        if family != "junk":
+            posteriors[family].append(map(float, line.strip().split()))
+    fp.close()
+    return posteriors
+
 def parse_summary_file(filename, multitree=False):
     summary = {}
     fp = open(filename, "r")
@@ -30,6 +55,7 @@ def format_vector(vector):
 def format_matrix(matrix):
     string = "["
     for row in matrix:
+        print row
         for r in row[:-1]:
             string += ("%f, " % r)
         string += ("%f;\n" % row[-1])
@@ -46,11 +72,21 @@ def format_summary(summary, method, family=None):
         key = method
     lines.append("stabs(%s) = %s\n" % (key, format_vector(summary["mean_stabs"])))
     lines.append("trans(%s) = %s\n" % (key, format_matrix(summary["mean_trans"])))
+    if family:
+        lines.append("indiv_uniform_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_uniform_ancestral"])))
+        lines.append("indiv_fuzzy_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_fuzzy_ancestral"])))
+        lines.append("indiv_stationary_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_stationary_ancestral"])))
+    else:
+        for i, family in enumerate("afro austro indo niger nilo sino".split()):
+            key = "%s_%s" % (method, family)
+            lines.append("multi_uniform_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_uniform_ancestral"][i])))
+            lines.append("multi_fuzzy_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_fuzzy_ancestral"][i])))
+            lines.append("multi_stationary_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_stationary_ancestral"][i])))
     return "\n".join(lines)
 
 def main():
     fp = open("results.m", "w")
-    for var in "stabs trans uniform_ancestrals".split():
+    for var in "stabs trans indiv_uniform_ancestrals indiv_fuzzy_ancestrals indiv_stationary_ancestrals multi_uniform_ancestrals multi_fuzzy_ancestrals mutli_stationary_ancestrals sliding_priors".split():
         fp.write("%s = containers.Map()\n" % (var,))
 
     for method in "geographic genetic feature combination".split():
@@ -58,6 +94,15 @@ def main():
             summary = parse_summary_file("../Inference/results/individual-q/%s/%s/summary" % (method, family))
             fp.write(format_summary(summary, method, family))
         summary = parse_summary_file("../Inference/results/common-q/%s/summary" % (method,), multitree=True)
+        fp.write(format_summary(summary, method))
+
+    ages, dists = parse_ubertree()
+    fp.write("common_ancestor_ages = %s\n" % format_vector(ages))
+    fp.write("common_ancestor_dists = %s\n" % format_matrix(dists))
+
+    sliding_posteriors = parse_sliding_prior_file()
+    for family in "afro austro indo niger nilo sino".split():
+        fp.write("sliding_priors(%s) = %s\n" % (family, format_matrix(sliding_posteriors[family])))
     fp.close()
 
 if __name__ == "__main__":
