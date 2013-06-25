@@ -1,5 +1,25 @@
+import random
 import itertools
 
+def load_stabilities(basename, multitree=False):
+    # If we load ALL the stability samples, we get an absurd
+    # amount.  So let's randomly sample from 10 trees and then
+    # take a random subsample of 500 points
+    stabs = []
+    trees = random.sample(range(1,101), 10)
+    for i in trees:
+        if multitree:
+            filename = basename + "/trees_%d/samples" % i
+        else:
+            filename = basename + "/tree_%d/samples" % i
+        fp = open(filename, "r")
+        lines = fp.readlines()
+        for line in [lines[x] for x in range(2,len(lines),10)]:
+            stabs.append(map(float, line.strip().split()))
+        fp.close()
+    stabs = random.sample(stabs, 500)
+    return stabs
+    
 def parse_ubertree():
     ages = []
     dists = []
@@ -55,7 +75,6 @@ def format_vector(vector):
 def format_matrix(matrix):
     string = "["
     for row in matrix:
-        print row
         for r in row[:-1]:
             string += ("%f, " % r)
         string += ("%f;\n" % row[-1])
@@ -86,15 +105,20 @@ def format_summary(summary, method, family=None):
 
 def main():
     fp = open("results.m", "w")
-    for var in "stabs trans indiv_uniform_ancestrals indiv_fuzzy_ancestrals indiv_stationary_ancestrals multi_uniform_ancestrals multi_fuzzy_ancestrals mutli_stationary_ancestrals sliding_priors".split():
+    for var in "stabs all_stabs trans indiv_uniform_ancestrals indiv_fuzzy_ancestrals indiv_stationary_ancestrals multi_uniform_ancestrals multi_fuzzy_ancestrals mutli_stationary_ancestrals sliding_priors".split():
         fp.write("%s = containers.Map()\n" % (var,))
 
     for method in "geographic genetic feature combination".split():
         for family in "afro austro indo niger nilo sino".split():
             summary = parse_summary_file("../Inference/results/individual-q/%s/%s/summary" % (method, family))
             fp.write(format_summary(summary, method, family))
+            stabs = load_stabilities("../Inference/results/individual-q/%s/%s/" % (method, family))
+            fp.write("all_stabs('%s_%s') = %s\n" % (method, family, format_matrix(stabs)))
+
         summary = parse_summary_file("../Inference/results/common-q/%s/summary" % (method,), multitree=True)
         fp.write(format_summary(summary, method))
+        stabs = load_stabilities("../Inference/results/common-q/%s/" % (method,), multitree=True)
+        fp.write("all_stabs('%s') = %s\n" % (method, format_matrix(stabs)))
 
     ages, dists = parse_ubertree()
     fp.write("common_ancestor_ages = %s\n" % format_vector(ages))
@@ -102,7 +126,7 @@ def main():
 
     sliding_posteriors = parse_sliding_prior_file()
     for family in "afro austro indo niger nilo sino".split():
-        fp.write("sliding_priors(%s) = %s\n" % (family, format_matrix(sliding_posteriors[family])))
+        fp.write("sliding_priors('%s') = %s\n" % (family, format_matrix(sliding_posteriors[family])))
     fp.close()
 
 if __name__ == "__main__":
