@@ -105,7 +105,7 @@ def format_summary(summary, method, family=None):
 
 def main():
     fp = open("results.m", "w")
-    for var in "stabs all_stabs trans indiv_uniform_ancestrals indiv_fuzzy_ancestrals indiv_stationary_ancestrals multi_uniform_ancestrals multi_fuzzy_ancestrals mutli_stationary_ancestrals sliding_priors".split():
+    for var in "stabs all_stabs trans indiv_uniform_ancestrals indiv_fuzzy_ancestrals indiv_stationary_ancestrals multi_uniform_ancestrals multi_fuzzy_ancestrals multi_stationary_ancestrals sliding_priors".split():
         fp.write("%s = containers.Map()\n" % (var,))
 
     for method in "geographic genetic feature combination".split():
