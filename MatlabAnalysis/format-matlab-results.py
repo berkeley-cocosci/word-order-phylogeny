@@ -89,8 +89,8 @@ def format_summary(summary, method, family=None):
         key = "%s_%s" % (method, family)
     else:
         key = method
-    lines.append("stabs(%s) = %s\n" % (key, format_vector(summary["mean_stabs"])))
-    lines.append("trans(%s) = %s\n" % (key, format_matrix(summary["mean_trans"])))
+    lines.append("stabs('%s') = %s\n" % (key, format_vector(summary["mean_stabs"])))
+    lines.append("trans('%s') = %s\n" % (key, format_matrix(summary["mean_trans"])))
     if family:
         lines.append("indiv_uniform_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_uniform_ancestral"])))
         lines.append("indiv_fuzzy_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_fuzzy_ancestral"])))
