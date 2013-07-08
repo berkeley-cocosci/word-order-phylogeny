@@ -96,6 +96,7 @@ def format_summary(summary, method, family=None):
         lines.append("indiv_fuzzy_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_fuzzy_ancestral"])))
         lines.append("indiv_stationary_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_stationary_ancestral"])))
     else:
+        lines.append("Q('%s') =  %s\n" % (key, format_matrix(summary["mean_Q"])))
         for i, family in enumerate("afro austro indo niger nilo sino".split()):
             key = "%s_%s" % (method, family)
             lines.append("multi_uniform_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_uniform_ancestral"][i])))
