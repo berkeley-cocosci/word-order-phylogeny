@@ -31,11 +31,11 @@ def parse_ubertree():
     fp.close()
     return ages, dists
    
-def parse_sliding_prior_file():
+def parse_sliding_prior_file(method="combination"):
     posteriors = {}
     for family in "afro austro indo niger nilo sino".split():
         posteriors[family] = []
-    fp = open("../Inference/results/common-q/combination/sliding_prior", "r")
+    fp = open("../Inference/results/common-q/%s/sliding_prior" % method, "r")
 
     for family, line in zip(itertools.cycle("afro austro indo niger nilo sino junk".split()), fp.readlines()):
         if family != "junk":
@@ -110,11 +110,14 @@ def main():
         fp.write("%s = containers.Map()\n" % (var,))
 
     for method in "geographic genetic feature combination".split():
+        sliding_priors = parse_sliding_prior_file(method)
+
         for family in "afro austro indo niger nilo sino".split():
             summary = parse_summary_file("../Inference/results/individual-q/%s/%s/summary" % (method, family))
             fp.write(format_summary(summary, method, family))
             stabs = load_stabilities("../Inference/results/individual-q/%s/%s/" % (method, family))
             fp.write("all_stabs('%s_%s') = %s\n" % (method, family, format_matrix(stabs)))
+            fp.write("sliding_priors('%s_%s') = %s\n" % (method, family, format_matrix(sliding_priors[family])))
 
         summary = parse_summary_file("../Inference/results/common-q/%s/summary" % (method,), multitree=True)
         fp.write(format_summary(summary, method))
@@ -125,9 +128,6 @@ def main():
     fp.write("common_ancestor_ages = %s\n" % format_vector(ages))
     fp.write("common_ancestor_dists = %s\n" % format_matrix(dists))
 
-    sliding_posteriors = parse_sliding_prior_file()
-    for family in "afro austro indo niger nilo sino".split():
-        fp.write("sliding_priors('%s') = %s\n" % (family, format_matrix(sliding_posteriors[family])))
     fp.close()
 
 if __name__ == "__main__":
