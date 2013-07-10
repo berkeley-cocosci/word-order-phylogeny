@@ -101,49 +101,49 @@ def format_summary(summary, method, family=None):
     lines.append("stabs('%s') = %s\n" % (key, format_vector(summary["mean_stabs"])))
     lines.append("trans('%s') = %s\n" % (key, format_matrix(summary["mean_trans"])))
     if family:
-        lines.append("indiv_uniform_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_uniform_ancestral"])))
-        lines.append("indiv_fuzzy_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_fuzzy_ancestral"])))
-        lines.append("indiv_stationary_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_stationary_ancestral"])))
+        lines.append("indiv_uniform_ancestrals('%s') =  %s;\n" % (key, format_vector(summary["mean_uniform_ancestral"])))
+        lines.append("indiv_fuzzy_ancestrals('%s') =  %s;\n" % (key, format_vector(summary["mean_fuzzy_ancestral"])))
+        lines.append("indiv_stationary_ancestrals('%s') =  %s;\n" % (key, format_vector(summary["mean_stationary_ancestral"])))
     else:
         lines.append("Q('%s') =  %s\n" % (key, format_matrix(summary["mean_Q"])))
         for i, family in enumerate("afro austro indo niger nilo sino".split()):
             key = "%s_%s" % (method, family)
-            lines.append("multi_uniform_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_uniform_ancestral"][i])))
-            lines.append("multi_fuzzy_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_fuzzy_ancestral"][i])))
-            lines.append("multi_stationary_ancestrals('%s') =  %s\n" % (key, format_vector(summary["mean_stationary_ancestral"][i])))
+            lines.append("multi_uniform_ancestrals('%s') =  %s;\n" % (key, format_vector(summary["mean_uniform_ancestral"][i])))
+            lines.append("multi_fuzzy_ancestrals('%s') =  %s;\n" % (key, format_vector(summary["mean_fuzzy_ancestral"][i])))
+            lines.append("multi_stationary_ancestrals('%s') =  %s;\n" % (key, format_vector(summary["mean_stationary_ancestral"][i])))
     return "\n".join(lines)
 
 def main():
     fp = open("results.m", "w")
     for var in "stabs all_stabs trans indiv_uniform_ancestrals indiv_fuzzy_ancestrals indiv_stationary_ancestrals multi_uniform_ancestrals multi_fuzzy_ancestrals multi_stationary_ancestrals indiv_sliding_priors multi_sliding_priors Q".split():
-        fp.write("%s = containers.Map()\n" % (var,))
+        fp.write("%s = containers.Map();\n" % (var,))
 
     for method in "geographic genetic feature combination".split():
 
         sliding_priors = parse_sliding_prior_file(method, multitree=False)
         for family in "afro austro indo niger nilo sino".split():
-            fp.write("indiv_sliding_priors('%s_%s') = %s\n" % (method, family, format_matrix(sliding_priors[family])))
+            fp.write("indiv_sliding_priors('%s_%s') = %s;\n" % (method, family, format_matrix(sliding_priors[family])))
 
         sliding_priors = parse_sliding_prior_file(method, multitree=True)
         for family in "afro austro indo niger nilo sino".split():
-            fp.write("multi_sliding_priors('%s_%s') = %s\n" % (method, family, format_matrix(sliding_priors[family])))
+            fp.write("multi_sliding_priors('%s_%s') = %s;\n" % (method, family, format_matrix(sliding_priors[family])))
 
         for family in "afro austro indo niger nilo sino".split():
             summary = parse_summary_file("../Inference/results/individual-q/%s/%s/summary" % (method, family))
             fp.write(format_summary(summary, method, family))
 
             stabs = load_stabilities("../Inference/results/individual-q/%s/%s/" % (method, family))
-            fp.write("all_stabs('%s_%s') = %s\n" % (method, family, format_matrix(stabs)))
+            fp.write("all_stabs('%s_%s') = %s;\n" % (method, family, format_matrix(stabs)))
         summary = parse_summary_file("../Inference/results/common-q/%s/summary" % (method,), multitree=True)
         fp.write(format_summary(summary, method))
 
         stabs = load_stabilities("../Inference/results/common-q/%s/" % (method,), multitree=True)
-        fp.write("all_stabs('%s') = %s\n" % (method, format_matrix(stabs)))
+        fp.write("all_stabs('%s') = %s;\n" % (method, format_matrix(stabs)))
         
 
     ages, dists = parse_ubertree()
-    fp.write("common_ancestor_ages = %s\n" % format_vector(ages))
-    fp.write("common_ancestor_dists = %s\n" % format_matrix(dists))
+    fp.write("common_ancestor_ages = %s;\n" % format_vector(ages))
+    fp.write("common_ancestor_dists = %s;\n" % format_matrix(dists))
 
     fp.close()
 
