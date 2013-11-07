@@ -47,6 +47,9 @@ Inference:
 	computational heavy lifting is done in C, with convenient Python
 	scripts to handle basic logic.
 
+	The C code requires the GNU Scientific Library (GSL) to compile, which
+	it's up to you to install.
+
 MatlabAnalysis:
 	MATLAB code to do some basic post-processing of the results produced
 	by Inference and produce pretty pictures.  MATLAB is awful and I would
