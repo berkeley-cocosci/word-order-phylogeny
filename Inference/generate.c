@@ -26,7 +26,7 @@ void generate_random_mutation_model(gsl_rng *r, gsl_vector *stabs, gsl_matrix *t
         gsl_vector_set(stabs, 0, 0.1);
         initialise_trans(r, trans);
 
-	for(i=0; i<100; i++) {
+	for(i=0; i<25; i++) {
 		draw_proposal(NULL, r, stabs, stabs_dash, trans, trans_dash);
                 vector_copy(stabs_dash, stabs);
                 matrix_copy(trans_dash, trans);
@@ -185,11 +185,17 @@ int main(int argc, char **argv) {
 	unsigned long int seed;
 	node_t *tree;
 	double likelihood, prior, posterior, max_likelihood = 0;
+	float cutoff, cumul;
 	filename = calloc(64, sizeof(char));
 	gsl_vector *stabs = gsl_vector_alloc(6);
 	gsl_matrix *trans = gsl_matrix_alloc(6, 6);
 	gsl_matrix *Q = gsl_matrix_alloc(6, 6);
+	gsl_matrix *P = gsl_matrix_alloc(6, 6);
 	gsl_rng *r = gsl_rng_alloc(gsl_rng_taus);
+        gsl_vector_complex *evals = gsl_vector_complex_alloc(6);
+        gsl_matrix_complex *evecs = gsl_matrix_complex_alloc(6,6);
+        gsl_matrix_complex *evecs_inv = gsl_matrix_complex_alloc(6,6);
+
 	fp = fopen("/dev/urandom", "r");
 	fread(&seed, sizeof(seed), 1, fp);
 	fclose(fp);
@@ -257,6 +263,21 @@ int main(int argc, char **argv) {
 	build_q(Q, stabs, trans);
 	strcpy(filename, outfile);
 	strcat(filename, "_matrix");
+
+	// Find stationary and sample root
+        decompose_q(Q, evals, evecs, evecs_inv);
+	compute_p(evals, evecs, evecs_inv, 1000000, P);
+	cutoff = gsl_rng_uniform(r);
+	rootorder = 0;
+	cumul = gsl_matrix_get(P, 0, 0);
+	while(cumul < cutoff) {
+		printf("Cutoff: %f\n", cutoff);
+		printf("Cumul: %f\n", cumul);
+		printf("Root: %d\n", rootorder);
+		rootorder++;
+		cumul += gsl_matrix_get(P,0, rootorder);
+	}
+
 	printf("Saving Q matrix...\n");
 	fp = fopen(filename, "w");
 	fprintf(fp, "%d\n", rootorder);

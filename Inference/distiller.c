@@ -311,7 +311,7 @@ void handle_directory(char *directory, summary_t *s, int multitree) {
 		//
 		for(i=0;i<100;i++) {
 			// Compute prior
-			years = i*2500/99.0;
+			years = i*40000/99.0;
 			t = years / 10000.0;
 			compute_p(evals, evecs, evecs_inv, t, P);
 			gsl_vector_set_zero(dist);

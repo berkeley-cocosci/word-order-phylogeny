@@ -165,12 +165,13 @@ def create_dense_subset(conn, cursor, n=25):
                 name TEXT)''')
     cursor.execute('''DELETE FROM dense_features''')
   
-    # Get the n+6 densest features
-    # Why n+6?  Because six of the densest feaures in WALS are either BWO or
-    # heavily correlated with BWO, so we don't want to use it for our purposes
-    # So if we grab the n+6 densest and exclude BWO and friends, we get the
-    # n densest *usable* features
-    cursor.execute('''SELECT id FROM features INNER JOIN langs_per_feature_counts ON features.id = langs_per_feature_counts.feature_id ORDER BY count DESC LIMIT ?''', (n+6,))
+    # Get the n densest non-disqualified features
+    # Excludes feaures which are either BWO or heavily correlated with BWO
+    # BWO is 81A
+    # We exclude 82A, 83A, 95A etc. because they are highly correlated
+    # After excluding those, 81A is the densest feature.
+    # So if we get the n+1 densest, we get the n denses valid features, plus BWO
+    cursor.execute('''SELECT id FROM features INNER JOIN langs_per_feature_counts ON features.id = langs_per_feature_counts.feature_id WHERE id NOT IN ("82A", "83A", "95A", "97A", "96A") ORDER BY count DESC LIMIT ?''', (n+1,))
     dense_features = cursor.fetchall()
     dense_features = [x[0] for x in dense_features]
     for fid in dense_features:
