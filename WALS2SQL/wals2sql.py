@@ -2,8 +2,19 @@
 from codecs import open
 import csv
 import sqlite3
+import sys
+sys.path.append("../TreeBuilder/")
+import generate_trees
 
+bwo = "Order of Subject, Object and Verb"
 #from make_dist_matrix import *
+
+class Language:
+
+    def __init__(self):
+	self.code = "FOO"
+	self.name = "BAR"
+	self.data = {}
 
 def create_languages_table(conn, cursor):
     cursor.execute('''CREATE TABLE IF NOT EXISTS languages(
@@ -171,13 +182,49 @@ def create_dense_subset(conn, cursor, n=25):
     # We exclude 82A, 83A, 95A etc. because they are highly correlated
     # After excluding those, 81A is the densest feature.
     # So if we get the n+1 densest, we get the n denses valid features, plus BWO
-    cursor.execute('''SELECT id FROM features INNER JOIN langs_per_feature_counts ON features.id = langs_per_feature_counts.feature_id WHERE id NOT IN ("82A", "83A", "95A", "97A", "96A") ORDER BY count DESC LIMIT ?''', (n+1,))
+    # TODO come up with a good reason why not to use BWO for tree building?
+    cursor.execute('''SELECT id FROM features INNER JOIN langs_per_feature_counts ON features.id = langs_per_feature_counts.feature_id WHERE id NOT IN ("82A", "83A", "95A", "97A", "96A", "144A") ORDER BY count DESC LIMIT ?''', (n+1,))
     dense_features = cursor.fetchall()
     dense_features = [x[0] for x in dense_features]
     for fid in dense_features:
         cursor.execute('''INSERT INTO dense_features SELECT * FROM features WHERE id=?''', (fid,))
+
+    # Now we delete from the dense_languages table those languages
+    # which do not have data for all the dense features
+    for fid in dense_features:
         cursor.execute('''DELETE FROM dense_languages WHERE wals_code IN
                 (SELECT wals_code FROM data_points WHERE feature_id=? and value_id IS NULL)''', (fid,))
+
+### Convenience functions
+
+def get_dense_languages_by_family(conn, cursor, family):
+    ethnoclasses = generate_trees.load_ethnologue_classifications()
+    cursor.execute("""SELECT wals_code FROM dense_languages WHERE family=? AND iso_codes != ''""", (family,))
+    codes = [code[0] for code in cursor.fetchall()]
+    languages = map(lambda(x): language_from_wals_code(conn, cursor, x), codes)
+    languages = map(lambda(x): generate_trees.apply_ethnoclass(x, ethnoclasses), languages)
+    languages = filter(lambda(x): x.data["ethnoclass"].split(",")[0].strip() == x.data["family"], languages)
+    languages = filter(lambda(x): x.data.get(bwo, None) not in (7,'7',None), languages)
+    hierlengths = [len(x.data["ethnoclass"].split(",")[1:]) for x in languages ]
+    return languages
+
+def language_from_wals_code(conn, cursor, code):
+    lang = Language()
+    cursor.execute('''SELECT * FROM languages WHERE wals_code=?''',(code,))
+    results = cursor.fetchone()
+    lang.code = results[0]
+    lang.name = results[1].replace(" ","_").replace("(","").replace(")","")
+    lang.data = {}
+    lang.data["location"] = (float(results[2]),float(results[3]))
+    lang.data["genus"] = results[4]
+    lang.data["family"] = results[5]
+    lang.data["subfamily"] = results[6]
+    lang.data["iso_codes"] = results[7]
+    cursor.execute('''SELECT name, value_id FROM speedyfeatures WHERE wals_code=?''',(code,))
+    for x in cursor.fetchall():
+        name, value = x
+        lang.data[name] = value
+    return lang
 
 
 def main():

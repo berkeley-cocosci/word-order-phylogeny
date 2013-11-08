@@ -6,8 +6,6 @@ from random import shuffle, random
 from csv import DictReader
 import sys
 
-from diagnostics import run_diags
-
 MINDIST = {}
 MINDIST["geographic"] = 0.15 # was 001
 MINDIST["genetic"] = 0.30
@@ -76,7 +74,7 @@ genetic_distance = param_genetic_factory(0.713)
 def optimal_feature_factory():
 
     weights = {}
-    fp = open("optimal_feature_weights", "r")
+    fp = open("calibration/optimal_feature_weights", "r")
     for line in fp:
         weight, feature = line.split("\t")
         weight = float(weight.strip())

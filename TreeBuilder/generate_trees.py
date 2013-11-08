@@ -3,6 +3,7 @@
 from codecs import open
 import os
 from sys import exit
+import sys
 import sqlite3
 from random import shuffle, gauss, sample, normalvariate, lognormvariate
 from copy import deepcopy
@@ -10,6 +11,9 @@ from copy import deepcopy
 import fileio
 from distance import *
 import dendropy
+
+sys.path.append("../WALS2SQL/")
+import wals2sql
 
 NOISES = {}
 NOISES["geographic"] = 0.05 # was 001
@@ -25,35 +29,6 @@ class Language:
 	self.name = "BAR"
 	self.data = {}
 		
-def get_languages_by_family(conn, cursor, family):
-    ethnoclasses = load_ethnologue_classifications()
-    cursor.execute("""SELECT wals_code FROM languages WHERE family=? AND iso_codes != ''""", (family,))
-    codes = [code[0] for code in cursor.fetchall()]
-    languages = map(lambda(x): language_from_wals_code(conn, cursor, x), codes)
-    languages = map(lambda(x): apply_ethnoclass(x, ethnoclasses), languages)
-    languages = filter(lambda(x): x.data["ethnoclass"].split(",")[0].strip() == x.data["family"], languages)
-    languages = filter(lambda(x): x.data.get(bwo, None) not in (7,'7',None), languages)
-    hierlengths = [len(x.data["ethnoclass"].split(",")[1:]) for x in languages ]
-    return languages
-
-def language_from_wals_code(conn, cursor, code):
-    lang = Language()
-    cursor.execute('''SELECT * FROM languages WHERE wals_code=?''',(code,))
-    results = cursor.fetchone()
-    lang.code = results[0]
-    lang.name = results[1].replace(" ","_").replace("(","").replace(")","")
-    lang.data = {}
-    lang.data["location"] = (float(results[2]),float(results[3]))
-    lang.data["genus"] = results[4]
-    lang.data["family"] = results[5]
-    lang.data["subfamily"] = results[6]
-    lang.data["iso_codes"] = results[7]
-    cursor.execute('''SELECT name, value_id FROM speedyfeatures WHERE wals_code=?''',(code,))
-    for x in cursor.fetchall():
-        name, value = x
-        lang.data[name] = value
-    return lang
-
 def has_negative_branches(tree):
     for edge in tree.get_edge_set():
         if edge.length and edge.length < 0:
@@ -267,12 +242,12 @@ def main():
     cursor.execute('''CREATE INDEX wals_code_index ON speedyfeatures(wals_code)''')
 
 
-    afrolangs = get_languages_by_family(conn, cursor, "Afro-Asiatic")
-    austrolangs = get_languages_by_family(conn, cursor, "Austronesian")
-    indolangs = get_languages_by_family(conn, cursor, "Indo-European")
-    nigerlangs = get_languages_by_family(conn, cursor, "Niger-Congo")
-    nilolangs = get_languages_by_family(conn, cursor, "Nilo-Saharan")
-    sinolangs = get_languages_by_family(conn, cursor, "Sino-Tibetan")
+    afrolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Afro-Asiatic")
+    austrolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Austronesian")
+    indolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Indo-European")
+    nigerlangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Niger-Congo")
+    nilolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Nilo-Saharan")
+    sinolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Sino-Tibetan")
     cursor.close()
     conn.close()
 
