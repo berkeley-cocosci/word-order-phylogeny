@@ -186,7 +186,7 @@ class Calibrator:
             var *= 0.99
             regress *= 0.99
 
-        fp = open("calibration/optimal_feature_weights", "w")
+        fp = open("calibration_results/optimal_feature_weights", "w")
         for feature in bestweights:
             fp.write("%f\t%s\n" % (bestweights[feature], feature))
         fp.close()
@@ -235,6 +235,12 @@ class Calibrator:
         self.optimal_combination_weights = weights
         self.maximum_combination_correlation = 0.5*(r21 + r22)
 
+        fp = open("calibration_results/optimal_combination_weights", "w")
+        fp.write("geo\t%f\n" % weights[0])
+        fp.write("gen\t%f\n" % weights[1])
+        fp.write("feat\t%f\n" % weights[2])
+        fp.close()
+
     def optimise_genetic(self):
         """
         Find the optimal rate at which to discount the importance of increasingly
@@ -254,6 +260,10 @@ class Calibrator:
 
         self.optimal_genetic_param = bestparam
         self.maximum_genetic_correlation = bestc
+
+        fp = open("calibration_resuls/optimal_genetic_parameter", "w")
+        fp.write("%f\n" % bestparam)
+        fp.close()
 
     def summarise(self):
 
