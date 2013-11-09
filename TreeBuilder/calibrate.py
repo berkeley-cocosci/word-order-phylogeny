@@ -134,7 +134,7 @@ class Calibrator:
             self.find_common_langs()
             self.compute_auth_vectors()
 
-            c1, c2 = self.evaluate_method("Feature", distance.feature_matrix)
+            c1, c2 = self.evaluate_method("Feature", distance.feature_matrix_factory())
             meanc = 0.5*(c1+c2)
             if meanc > bestc:
                 bestc = meanc
@@ -159,7 +159,7 @@ class Calibrator:
                 weights[feature] = random.random()
 
         # Do a rough simulated annealing kind of thing
-        func = distance.weighted_feature_factory(weights)
+        func = distance.feature_matrix_factory(weights)
         c1, c2 = self.evaluate_method("Random weighted", func)
         var = 0.01
         regress = 0.05
@@ -174,7 +174,7 @@ class Calibrator:
                 else:
                     newweights[changekey] = random.random()
 
-            func = distance.weighted_feature_factory(weights)
+            func = distance.feature_matrix_factory(weights)
             newc1, newc2 = self.evaluate_method("Random weighted", func)
             meanc = 0.5*(newc1+newc2)
             if meanc > 0.5*(c1+c2) or random.random() < regress:
@@ -194,15 +194,39 @@ class Calibrator:
         self.optimal_feature_weights = bestweights
         self.maximum_feature_correlation = bestc
 
+    def optimise_genetic(self):
+        """
+        Find the optimal rate at which to discount the importance of increasingly
+        fine-grained genetic category matches.
+        """
+        N = 50
+        bestparam = 0
+        bestc = 0
+        for i in range(0, N+1):
+            param = 0.70 + i*(0.05/N)
+            func = distance.genetic_matrix_factory(param)
+            c1, c2 = self.evaluate_method("Random weighted", func)
+            mean = 0.5*(c1+c2)
+            if mean > bestc:
+                bestc = mean
+                bestparam = param
+
+        self.optimal_genetic_param = bestparam
+        self.maximum_genetic_correlation = bestc
+
+        fp = open("calibration_results/optimal_genetic_parameter", "w")
+        fp.write("%f\n" % bestparam)
+        fp.close()
+
     def optimise_combination(self):
         """
         Use multiple linear regression to determine the optimal weighted
         combination of the GEOGRAPHIC, GENETIC and FEATUE methods.
         """
         # Austro
-        geographic_austro_vector = self.compute_method_vector(distance.linear_geography_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
-        genetic_austro_vector = self.compute_method_vector(distance.genetic_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
-        feature_austro_vector = self.compute_method_vector(distance.optimal_feature_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
+        geographic_austro_vector = self.compute_method_vector(distance.build_optimal_geographic_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
+        genetic_austro_vector = self.compute_method_vector(distance.build_optimal_genetic_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
+        feature_austro_vector = self.compute_method_vector(distance.build_optimal_feature_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
 
         df = {}
         df["auth"] = self.auth_austro_vector
@@ -215,9 +239,9 @@ class Calibrator:
         weights1 = [x/sum(weights1) for x in weights1]
         r21 = model.rsquared
         # Indo
-        geographic_indo_vector = self.compute_method_vector(distance.linear_geography_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
-        genetic_indo_vector = self.compute_method_vector(distance.genetic_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
-        feature_indo_vector = self.compute_method_vector(distance.optimal_feature_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
+        geographic_indo_vector = self.compute_method_vector(distance.build_optimal_geographic_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
+        genetic_indo_vector = self.compute_method_vector(distance.build_optimal_genetic_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
+        feature_indo_vector = self.compute_method_vector(distance.build_optimal_feature_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
         df = {}
         df["auth"] = self.auth_indo_vectors[0]
         df["geo"] = geographic_indo_vector
@@ -239,30 +263,6 @@ class Calibrator:
         fp.write("geo\t%f\n" % weights[0])
         fp.write("gen\t%f\n" % weights[1])
         fp.write("feat\t%f\n" % weights[2])
-        fp.close()
-
-    def optimise_genetic(self):
-        """
-        Find the optimal rate at which to discount the importance of increasingly
-        fine-grained genetic category matches.
-        """
-        N = 50
-        bestparam = 0
-        bestc = 0
-        for i in range(0, N+1):
-            param = 0.70 + i*(0.05/N)
-            func = distance.param_genetic_matrix_factory(param)
-            c1, c2 = self.evaluate_method("Random weighted", func)
-            mean = 0.5*(c1+c2)
-            if mean > bestc:
-                bestc = mean
-                bestparam = param
-
-        self.optimal_genetic_param = bestparam
-        self.maximum_genetic_correlation = bestc
-
-        fp = open("calibration_resuls/optimal_genetic_parameter", "w")
-        fp.write("%f\n" % bestparam)
         fp.close()
 
     def summarise(self):
