@@ -86,18 +86,10 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
                 matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, 0.0666))
                 matrix[k][j] = matrix[j][k]
 
-        # Randomly generate a ratio of highest pairwise distanc to lowest,
-        # based on the apparent distribution in authoritative trees
-        r = gauss(12.4, 1.04)
-        minn = min([min(row) for row in matrix])
-        maxx = max([max(row) for row in matrix])
-        offset = (maxx - r*minn) / (r-1)
-
-        # Add offset and renormalise matrix in one go
-        norm = offset + max([max(row) for row in matrix])
+        # Renormalise matrix
+        norm = max([max(row) for row in matrix])
         for j in range(0, len(matrix)):
             for k in range(j+1, len(matrix)):
-                matrix[j][k] += offset
                 matrix[j][k] /= norm
                 matrix[k][j] = matrix[j][k]
 
