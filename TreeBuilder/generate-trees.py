@@ -56,78 +56,80 @@ def fix_negative_branches(tree):
 
 def make_trees(languages, age_params, build_method, family_name, tree_count):
 
+    # Build base matrix according to specified method
     base_matrix = build_matrix_by_method_name(languages, build_method)
+
+    # Normalise the base matrix
+    norm = max([max(row) for row in base_matrix])
+    for j in range(0, len(base_matrix)):
+        for k in range(j+1, len(base_matrix)):
+            base_matrix[j][k] /= norm
+
+    # Build random variations of base matrix
     for index in range(0, tree_count):
-        make_tree(base_matrix, age_params, build_method, family_name, index)
+        failure = 0
+        while failures < 10:
+            try:
+                make_tree(base_matrix, age_params, build_method, family_name, index)
+            except:
+                failures += 1
+                continue
+        if failures == 10:
+            print "Aborting after sustained failure to generated %d-th tree with the following parameters:" % index
+            print build_method, family_name, tree_count
+            exit(42)
 
 def make_tree(base_matrix, age_params, build_method, family_name, index):
 
-    # Age params is a tuple of mean ages
+    matrix = deepcopy(base_matrix)
+
+    # Add random noise
+    # The biggest distance is now 1.0
+    # Let's set our Gaussian parameters so that we very rarely add/take more than 0.2
+    # to/from a distance.  3sigma = 0.2 => sigma = 0.0666
+    for j in range(0, len(matrix)):
+        for k in range(j+1, len(matrix)):
+            matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, 0.0666))
+            matrix[k][j] = matrix[j][k]
+
+    # Renormalise matrix
+    norm = max([max(row) for row in matrix])
+    for j in range(0, len(matrix)):
+        for k in range(j+1, len(matrix)):
+            matrix[j][k] /= norm
+            matrix[k][j] = matrix[j][k]
+
+    # Save the matrix and generate a tree from it
+    filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
+    directory = os.path.dirname(filename)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    fileio.save_matrix(matrix, filename+".distance")
+
+    # Use NINJA to do Neighbour Joining
+    os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.tree" % (filename, filename))
+
+    # Read output of NINJA into Dendropy Tree
+    fp = open("%s.tree" % filename, "r")
+    tree_string = fp.read()
+    fp.close()
+    tree = dendropy.Tree.get_from_string(tree_string, "newick")
+
+    # Fix any negative branches
+    if has_negative_branches(tree):
+        fix_negative_branches(tree)
+
+    # Root at midpoint
+    tree.reroot_at_midpoint()
+
+    # Sample tree age
+    # age_params is a tuple of mean ages
     # Choose one mean at random (equally weighted mixture model)
     # Standard deviation is always 20% of the mean
     shuffle(age_params)
     age = gauss(age_params[0], age_params[0]*0.25/2)
 
-    matrix = deepcopy(base_matrix)
-    failures = 0
-    while failures < 5:
-        # Normalise the matrix
-        norm = max([max(row) for row in matrix])
-        for j in range(0, len(matrix)):
-            for k in range(j+1, len(matrix)):
-                matrix[j][k] /= norm
-
-        # Add random noise
-        # The biggest distance is now 1.0
-        # Let's set our Gaussian parameters so that we very rarely add/take more than 0.2
-        # to/from a distance.  3sigma = 0.2 => sigma = 0.0666
-        for j in range(0, len(matrix)):
-            for k in range(j+1, len(matrix)):
-                matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, 0.0666))
-                matrix[k][j] = matrix[j][k]
-
-        # Renormalise matrix
-        norm = max([max(row) for row in matrix])
-        for j in range(0, len(matrix)):
-            for k in range(j+1, len(matrix)):
-                matrix[j][k] /= norm
-                matrix[k][j] = matrix[j][k]
-
-        # Save the matrix and generate a tree from it
-        filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
-        directory = os.path.dirname(filename)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        fileio.save_matrix(matrix, filename+".distance")
-
-        # Use NINJA to do Neighbour Joining
-        os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.tree" % (filename, filename))
-
-        # Read output of NINJA into Dendropy Tree
-        fp = open("%s.tree" % filename, "r")
-        tree_string = fp.read()
-        fp.close()
-        tree = dendropy.Tree.get_from_string(tree_string, "newick")
-
-        # Die on negative branch length
-        if has_negative_branches(tree):
-            try:
-                fix_negative_branches(tree)
-            except:
-                failures += 1
-                continue
-
-        break
-
-    if failures == 5:
-        # We tried 5 times to build a tree without negatives and failed
-        print "Dying due to persistent negative branch problem!"
-        exit(42)
-
-    # Root at midpoint
-    tree.reroot_at_midpoint()
-
-    # Scale to fit age.
+    # Scale to fit age
     maxlength = max([leaf.distance_from_root() for leaf in tree.leaf_nodes()])
     desiredmax = age/10000.0
     scalefactor = desiredmax / maxlength 
