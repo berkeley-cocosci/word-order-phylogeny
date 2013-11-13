@@ -104,7 +104,7 @@ class Calibrator:
         method_vector = [matrix[trans[l1]][trans[l2]] for l1, l2 in itertools.combinations(common_langs, 2)]
         return np.array(method_vector)
 
-    def evaluate_method(self, matrix_builder):
+    def evaluate_method(self, matrix_builder, label=None):
         """
         Build matrices using matrix_builder function and compare the
         pairwise distances between vectors to those taken from the
@@ -112,15 +112,19 @@ class Calibrator:
         """
         method_austro_vector = self.compute_method_vector(matrix_builder(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
         method_indo_vector = self.compute_method_vector(matrix_builder(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
-        return self.fit_models(method_austro_vector, method_indo_vector)
+        return self.fit_models(method_austro_vector, method_indo_vector, label)
 
-    def fit_models(self, method_austro_vector, method_indo_vector):
+    def fit_models(self, method_austro_vector, method_indo_vector, label=None):
 
         df = {}
         df["auth"] = np.concatenate([self.auth_austro_vector, self.auth_indo_vector])
         df["method"] = np.concatenate([method_austro_vector, method_indo_vector])
         df = pd.DataFrame(df)
         combined_model = smf.ols('auth ~ method', data=df).fit()
+        predictions = combined_model.predict(df)
+        df["fit"] = predictions
+        if label:
+            df.to_csv("calibration_results/%s_data.csv" % label)
 
         df = {}
         df["auth"] = self.auth_austro_vector
@@ -139,7 +143,7 @@ class Calibrator:
     def optimise_geographic(self):
 
         func = distance.geographic_matrix_factory()
-        combined_model, austro_model, indo_model = self.evaluate_method(func)
+        combined_model, austro_model, indo_model = self.evaluate_method(func, "geo")
         self.max_geo_combined = combined_model.rsquared
         self.max_geo_austro = austro_model.rsquared
         self.max_geo_indo = indo_model.rsquared
@@ -158,7 +162,7 @@ class Calibrator:
         for i in range(0, N):
             param = (i+1)*(1.0/N)
             func = distance.genetic_matrix_factory(param)
-            combined_model, austro_model, indo_model = self.evaluate_method(func)
+            combined_model, austro_model, indo_model = self.evaluate_method(func, "gen")
             if combined_model.rsquared > bestc:
                 best_combined = combined_model
                 best_austro = austro_model
