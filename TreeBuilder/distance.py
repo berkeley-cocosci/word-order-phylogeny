@@ -41,21 +41,18 @@ def build_matrix_by_method_name(languages, method):
 ##########
 
 def haversine_distance(val1, val2):
-        R = 6371.0
-        lat1, lon1 = val1
-        lat2, lon2 = val2
-        dlat = radians(lat2-lat1)
-        dlon = radians(lon2-lon1)
-        lat1 = radians(lat1)
-        lat2 = radians(lat2)
-        a = sin(dlat/2)**2 + cos(lat1)*cos(lat2)*sin(dlon/2)**2
-	if a == 1.0:
-		print "Ack, cheating on: ", lat1, lon1, lat2, lon2
-		return 0.5
-        c = 2*atan(sqrt(a)/sqrt(1-a))
-        d = R*c
-        d = 2*d/(2*pi*R)
-        return d
+    R = 6371.0
+    lat1, lon1 = val1
+    lat2, lon2 = val2
+    dlat = radians(lat2-lat1)
+    dlon = radians(lon2-lon1)
+    lat1 = radians(lat1)
+    lat2 = radians(lat2)
+    a = sin(dlat/2)**2 + cos(lat1)*cos(lat2)*sin(dlon/2)**2
+    c = 2*atan(sqrt(a)/sqrt(1-a))
+    d = R*c
+    d = 2*d/(2*pi*R)
+    return d
 
 def geographic_function_factory(languages, intercept=0.0, slope=1.0):
     done = []
