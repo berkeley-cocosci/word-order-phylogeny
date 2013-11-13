@@ -58,12 +58,7 @@ def make_trees(languages, age_params, build_method, family_name, tree_count):
 
     # Build base matrix according to specified method
     base_matrix = build_matrix_by_method_name(languages, build_method)
-
-    # Normalise the base matrix
-    norm = max([max(row) for row in base_matrix])
-    for j in range(0, len(base_matrix)):
-        for k in range(j+1, len(base_matrix)):
-            base_matrix[j][k] /= norm
+    assert base_matrix.min() >=0
 
     # Build random variations of base matrix
     for index in range(0, tree_count):
