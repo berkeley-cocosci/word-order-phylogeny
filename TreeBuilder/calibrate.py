@@ -6,7 +6,6 @@ import math
 import numpy as np
 import os
 import pdb
-import scipy.stats
 import pandas as pd
 import statsmodels.formula.api as smf
 import sys
@@ -14,6 +13,7 @@ import sqlite3
 import random
 
 import dendropy
+import prettytable
 
 sys.path.append("../WALS2SQL/")
 bwo = "Order of Subject, Object and Verb"
@@ -46,8 +46,8 @@ class Calibrator:
 
         self.wals_austro_trans = load_translate_file("generated_trees/austro.translate")
         self.wals_indo_trans = load_translate_file("generated_trees/indo.translate")
-        self.austrolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Austronesian")
-        self.indolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Indo-European")
+        self.austrolangs = wals2sql.get_languages_by_family(conn, cursor, "Austronesian")
+        self.indolangs = wals2sql.get_languages_by_family(conn, cursor, "Indo-European")
 
         cursor.close()
         conn.close()
@@ -90,7 +90,10 @@ class Calibrator:
 
     def compute_auth_vectors(self):
         self.auth_austro_vector = self.compute_auth_vector(self.auth_austro_tree, self.common_austro_langs, self.auth_austro_trans)
-        self.auth_indo_vectors = [self.compute_auth_vector(auth_indo_tree, self.common_indo_langs, self.auth_indo_trans) for auth_indo_tree in self.auth_indo_trees]
+        self.auth_austro_vector = self.auth_austro_vector / self.auth_austro_vector.max()
+        auth_indo_vectors = np.array([self.compute_auth_vector(auth_indo_tree, self.common_indo_langs, self.auth_indo_trans) for auth_indo_tree in self.auth_indo_trees])
+        self.auth_indo_vector = np.mean(auth_indo_vectors, axis=0)
+        self.auth_indo_vector = self.auth_indo_vector / self.auth_indo_vector.max()
 
     def compute_method_vector(self, matrix, common_langs, trans):
         """
@@ -101,7 +104,7 @@ class Calibrator:
         method_vector = [matrix[trans[l1]][trans[l2]] for l1, l2 in itertools.combinations(common_langs, 2)]
         return np.array(method_vector)
 
-    def evaluate_method(self, long_name, matrix_builder):
+    def evaluate_method(self, matrix_builder):
         """
         Build matrices using matrix_builder function and compare the
         pairwise distances between vectors to those taken from the
@@ -109,175 +112,200 @@ class Calibrator:
         """
         method_austro_vector = self.compute_method_vector(matrix_builder(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
         method_indo_vector = self.compute_method_vector(matrix_builder(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
-        austro_correl = scipy.stats.pearsonr(self.auth_austro_vector, method_austro_vector)[0]
-        indo_correls = [scipy.stats.pearsonr(auth_indo_vector, method_indo_vector)[0] for auth_indo_vector in self.auth_indo_vectors]
-        return austro_correl, sum(indo_correls)/len(indo_correls)
+        return self.fit_models(method_austro_vector, method_indo_vector)
 
-    def optimise_feature_count(self):
-        """
-        Find the best value of n, such that data about the n densest
-        features yields the best correlation with the authoritative
-        trees.
-        """
-        conn = sqlite3.connect("../WALS2SQL/wals.db")
-        cursor = conn.cursor()
-        cursor.execute('''PRAGMA cache_size = -25000''')
+    def fit_models(self, method_austro_vector, method_indo_vector):
 
-        bestn = 0
-        bestc = 0
-        for n in range(1,30):
-            # Recreate all the WALS stuff for this value of N.
-            # This potential changes the set of languages that are common between
-            # WALS and our authoritative trees, so we need to recompute those
-            wals2sql.create_dense_subset(conn, cursor, n)
-            self.load_wals_data()
-            self.find_common_langs()
-            self.compute_auth_vectors()
+        df = {}
+        df["auth"] = np.concatenate([self.auth_austro_vector, self.auth_indo_vector])
+        df["method"] = np.concatenate([method_austro_vector, method_indo_vector])
+        df = pd.DataFrame(df)
+        combined_model = smf.ols('auth ~ method', data=df).fit()
 
-            c1, c2 = self.evaluate_method("Feature", distance.feature_matrix_factory())
-            meanc = 0.5*(c1+c2)
-            if meanc > bestc:
-                bestc = meanc
-                bestn = n
-        cursor.close()
-        conn.close()
+        df = {}
+        df["auth"] = self.auth_austro_vector
+        df["method"] = method_austro_vector
+        df = pd.DataFrame(df)
+        austro_model = smf.ols('auth ~ method', data=df).fit()
 
-        self.optimal_feature_count = bestn
+        df = {}
+        df["auth"] = self.auth_indo_vector
+        df["method"] = method_indo_vector
+        df = pd.DataFrame(df)
+        indo_model = smf.ols('auth ~ method', data=df).fit()
 
-    def optimise_feature_weights(self):
-        """
-        Use random search to find the optimal weights for the various
-        language features to define a weighted Hamming distance.
-        """
-        random.seed()
-        bestweights = None
-        bestc = 0
-        weights = {}
+        return combined_model, austro_model, indo_model
 
-        for feature in self.austrolangs[0].data:
-            if feature not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "Order of Subject and Verb", "Order of Object and Verb", "iso_codes", "ethnoclass"] and not feature.startswith("Relationship between the Order of Object and Verb"):
-                weights[feature] = random.random()
+    def optimise_geographic(self):
 
-        # Do a rough simulated annealing kind of thing
-        func = distance.feature_matrix_factory(weights)
-        c1, c2 = self.evaluate_method("Random weighted", func)
-        var = 0.01
-        regress = 0.05
-        for i in range(0,25):
-            newweights = weights.copy()
-            changekey = random.sample(newweights.keys(),1)[0]
-            if random.random() < 0.9:
-                newweights[changekey] = max(0, newweights[changekey] + random.gauss(0, var))
-            else:
-                if newweights[changekey]:
-                    newweights[changekey] = 0.0
-                else:
-                    newweights[changekey] = random.random()
-
-            func = distance.feature_matrix_factory(weights)
-            newc1, newc2 = self.evaluate_method("Random weighted", func)
-            meanc = 0.5*(newc1+newc2)
-            if meanc > 0.5*(c1+c2) or random.random() < regress:
-                weights = newweights
-                c1, c2 = newc1, newc2
-            if meanc > bestc:
-                bestc = meanc
-                bestweights = weights
-            var *= 0.99
-            regress *= 0.99
-
-        fp = open("calibration_results/optimal_feature_weights", "w")
-        for feature in bestweights:
-            fp.write("%f\t%s\n" % (bestweights[feature], feature))
-        fp.close()
-
-        self.optimal_feature_weights = bestweights
-        self.maximum_feature_correlation = bestc
+        func = distance.geographic_matrix_factory()
+        combined_model, austro_model, indo_model = self.evaluate_method(func)
+        self.max_geo_combined = combined_model.rsquared
+        self.max_geo_austro = austro_model.rsquared
+        self.max_geo_indo = indo_model.rsquared
+        with open("calibration_results/optimal_geographic_parameters", "w") as fp:
+            fp.write("%f\n" % combined_model.params["Intercept"])
+            fp.write("%f\n" % combined_model.params["method"])
 
     def optimise_genetic(self):
         """
         Find the optimal rate at which to discount the importance of increasingly
         fine-grained genetic category matches.
         """
-        N = 50
+        N = 100
         bestparam = 0
         bestc = 0
-        for i in range(0, N+1):
-            param = 0.70 + i*(0.05/N)
+        for i in range(0, N):
+            param = (i+1)*(1.0/N)
             func = distance.genetic_matrix_factory(param)
-            c1, c2 = self.evaluate_method("Random weighted", func)
-            mean = 0.5*(c1+c2)
-            if mean > bestc:
-                bestc = mean
+            combined_model, austro_model, indo_model = self.evaluate_method(func)
+            if combined_model.rsquared > bestc:
+                best_combined = combined_model
+                best_austro = austro_model
+                best_indo = indo_model
                 bestparam = param
+        self.max_gen_combined = best_combined.rsquared
+        self.max_gen_austro = best_austro.rsquared
+        self.max_gen_indo = best_indo.rsquared
 
-        self.optimal_genetic_param = bestparam
-        self.maximum_genetic_correlation = bestc
+        with open("calibration_results/optimal_genetic_parameters", "w") as fp:
+            fp.write("%f\n" % best_combined.params["Intercept"])
+            fp.write("%f\n" % best_combined.params["method"])
+            fp.write("%f\n" % bestparam)
 
-        fp = open("calibration_results/optimal_genetic_parameter", "w")
-        fp.write("%f\n" % bestparam)
+    def optimise_feature(self):
+
+        conn = sqlite3.connect("../WALS2SQL/wals.db")
+        cursor = conn.cursor()
+        cursor.execute('''PRAGMA cache_size = -25000''')
+
+        wals2sql.compute_dense_features(conn, cursor, 25)
+        dense_features = wals2sql.get_dense_features(conn, cursor)
+        cursor.close()
+        conn.close()
+        comparators = distance.build_comparators()
+
+        # Ugly hack
+        langs_by_name = {}
+        for lang in self.austrolangs:
+            langs_by_name[lang.name] = lang
+        for lang in self.indolangs:
+            langs_by_name[lang.name] = lang
+
+        df = {}
+        df["auth"] = np.concatenate([self.auth_austro_vector, self.auth_indo_vector])
+        good_features = []
+        for index, feature in enumerate(dense_features):
+            df["feat%d" % index] = []
+            for l1, l2 in itertools.chain(itertools.combinations(self.common_austro_langs, 2), itertools.combinations(self.common_indo_langs, 2)):
+                l1 = langs_by_name[l1]
+                l2 = langs_by_name[l2]
+                useful_points = 0
+                if feature in l1.data and feature in l2.data:
+                    df["feat%d" % index].append(comparators[feature](l1.data[feature], l2.data[feature]))
+                    useful_points += 1
+                else:
+                    df["feat%d" % index].append(0.5)
+            if useful_points > 0:
+                good_features.append("feat%d" % index)
+            else:
+                # There's literally no pairwise data for this feature!
+                df.pop("feat%d" % index)
+        df = pd.DataFrame(df)
+        df.to_csv("calibration_results/feature_data.csv")
+        model_spec = "auth ~ " + " + ".join(good_features)
+        model = smf.ols(model_spec, data=df).fit()
+
+        fp = open("calibration_results/optimal_feature_weights", "w")
+        for index, feature in enumerate(dense_features):
+            fp.write("%f\tintercept\n" % model.params["Intercept"])
+            if "feat%d" % index in good_features:
+                fp.write("%f\t%s\n" % (model.params["feat%d" % index], feature))
         fp.close()
+
+        self.max_feat_combined = model.rsquared
+
+        olddf = df
+        df = {}
+        for key in olddf:
+            df[key] = olddf[key][0:len(self.auth_austro_vector)]
+        df = pd.DataFrame(df)
+        model_spec = "auth ~ " + " + ".join(good_features)
+        model = smf.ols(model_spec, data=df).fit()
+        self.max_feat_austro = model.rsquared
+
+        df = {}
+        for key in olddf:
+            df[key] = olddf[key][len(self.auth_austro_vector):]
+            assert len(df[key]) == len(self.auth_indo_vector)
+        df = pd.DataFrame(df)
+        model_spec = "auth ~ " + " + ".join(good_features)
+        model = smf.ols(model_spec, data=df).fit()
+        self.max_feat_indo = model.rsquared
 
     def optimise_combination(self):
         """
         Use multiple linear regression to determine the optimal weighted
         combination of the GEOGRAPHIC, GENETIC and FEATUE methods.
         """
-        # Austro
-        geographic_austro_vector = self.compute_method_vector(distance.build_optimal_geographic_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
-        genetic_austro_vector = self.compute_method_vector(distance.build_optimal_genetic_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
-        feature_austro_vector = self.compute_method_vector(distance.build_optimal_feature_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
+
+        geo_austro = self.compute_method_vector(distance.build_optimal_geographic_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
+        geo_indo =  self.compute_method_vector(distance.build_optimal_geographic_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
+        gen_austro = self.compute_method_vector(distance.build_optimal_genetic_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
+        gen_indo =  self.compute_method_vector(distance.build_optimal_genetic_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
+        feat_austro = self.compute_method_vector(distance.build_optimal_feature_matrix(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
+        feat_indo =  self.compute_method_vector(distance.build_optimal_feature_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
 
         df = {}
-        df["auth"] = self.auth_austro_vector
-        df["geo"] = geographic_austro_vector
-        df["gen"] = genetic_austro_vector
-        df["feat"] = feature_austro_vector
+        df["auth"] = np.concatenate([self.auth_austro_vector, self.auth_indo_vector])
+        df["geo"] = np.concatenate([geo_austro, geo_indo])
+        df["gen"] = np.concatenate([gen_austro, gen_indo])
+        df["feat"] = np.concatenate([feat_austro, feat_indo])
         df = pd.DataFrame(df)
+        df.to_csv("calibration_results/combination_data.csv")
         model = smf.ols('auth ~ geo + gen + feat', data=df).fit()
-        weights1 = [model.params[x] for x in ("geo", "gen", "feat")]
-        weights1 = [x/sum(weights1) for x in weights1]
-        r21 = model.rsquared
-        # Indo
-        geographic_indo_vector = self.compute_method_vector(distance.build_optimal_geographic_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
-        genetic_indo_vector = self.compute_method_vector(distance.build_optimal_genetic_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
-        feature_indo_vector = self.compute_method_vector(distance.build_optimal_feature_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
-        df = {}
-        df["auth"] = self.auth_indo_vectors[0]
-        df["geo"] = geographic_indo_vector
-        df["gen"] = genetic_indo_vector
-        df["feat"] = feature_indo_vector
-        df = pd.DataFrame(df)
-        model = smf.ols('auth ~ geo + gen + feat', data=df).fit()
-        weights2 = [model.params[x] for x in ("geo", "gen", "feat")]
-        weights2 = [x/sum(weights2) for x in weights2]
-        r22 = model.rsquared
-
-        # TODO Come up with a more principled way of combining weights
-        weights = [(x+y)/2.0 for x, y in zip(weights1, weights2)]
-
-        self.optimal_combination_weights = weights
-        self.maximum_combination_correlation = 0.5*(r21 + r22)
+        weights = [model.params[x] for x in ("geo", "gen", "feat")]
 
         fp = open("calibration_results/optimal_combination_weights", "w")
+        fp.write("intercept\t%f\n" % model.params["Intercept"])
         fp.write("geo\t%f\n" % weights[0])
         fp.write("gen\t%f\n" % weights[1])
         fp.write("feat\t%f\n" % weights[2])
         fp.close()
 
+        self.max_combo_combined = model.rsquared
+
+        df = {}
+        df["auth"] = self.auth_austro_vector
+        df["geo"] = geo_austro
+        df["gen"] = gen_austro
+        df["feat"] = feat_austro
+        df = pd.DataFrame(df)
+        model = smf.ols('auth ~ geo + gen + feat', data=df).fit()
+        self.max_combo_austro = model.rsquared
+
+        df = {}
+        df["auth"] = self.auth_indo_vector
+        df["geo"] = geo_indo
+        df["gen"] = gen_indo
+        df["feat"] = feat_indo
+        df = pd.DataFrame(df)
+        model = smf.ols('auth ~ geo + gen + feat', data=df).fit()
+        self.max_combo_indo = model.rsquared
+
     def summarise(self):
 
-        print "SUMMARY:"
-        print "-"*79
-        print "Best feature count: %d" % self.optimal_feature_count
-        print "Best GENETIC correlation: %f" % self.maximum_genetic_correlation
-        print "Best FEATURE correlation: %f" % self.maximum_feature_correlation
-        print "Best COMBINATION correlation: %f" % self.maximum_combination_correlation
+        pt = prettytable.PrettyTable(["Method", "Combined correl", "Austronesian correl", "Indo-European correl"])
+        pt.add_row(["GEOGRAPHIC", self.max_geo_combined, self.max_geo_austro, self.max_geo_indo])
+        pt.add_row(["GENETIC", self.max_gen_combined, self.max_gen_austro, self.max_gen_indo])
+        pt.add_row(["FEATURE", self.max_feat_combined, self.max_feat_austro, self.max_feat_indo])
+        pt.add_row(["COMBINATION", self.max_combo_combined, self.max_combo_austro, self.max_combo_indo])
+        print pt
 
 if __name__ == "__main__":
     calibrator = Calibrator()
-    calibrator.optimise_feature_count()
-    calibrator.optimise_feature_weights()
+    calibrator.optimise_geographic()
     calibrator.optimise_genetic()
+    calibrator.optimise_feature()
     calibrator.optimise_combination()
     calibrator.summarise()

@@ -5,11 +5,9 @@ import codecs
 from random import shuffle, random
 from csv import DictReader
 import sys
+import pdb
 
-MINDIST = {}
-MINDIST["geographic"] = 0.15 # was 001
-MINDIST["genetic"] = 0.30
-MINDIST["feature"] = 0.45
+import numpy as np
 
 def build_matrix(languages, distance_function):
     matrix = []
@@ -25,7 +23,7 @@ def build_matrix(languages, distance_function):
 
 def build_matrix_by_method_name(languages, method):
     if method == "geographic":
-        return built_optimal_geographic_matrix(languages)
+        return build_optimal_geographic_matrix(languages)
     elif method == "genetic":
         return build_optimal_genetic_matrix(languages)
     elif method == "feature":
@@ -54,7 +52,7 @@ def haversine_distance(val1, val2):
         d = 2*d/(2*pi*R)
         return d
 
-def geographic_function_factory(languages, param):
+def geographic_function_factory(languages, intercept=0.0, slope=1.0):
     done = []
     maxdist = 0
     for i in range(0,len(languages)):
@@ -65,24 +63,28 @@ def geographic_function_factory(languages, param):
                 if dist > maxdist:
                     maxdist = dist
     def distance(lang1, lang2):
-        return haversine_distance(lang1.data["location"], lang2.data["location"]) / maxdist
+        linear = haversine_distance(lang1.data["location"], lang2.data["location"]) / maxdist
+        return intercept + slope*np.log(linear)
     return distance
 
-def geographic_matrix_factory(param):
+def geographic_matrix_factory():
     def matrix_builder(languages):
-        distfunc = geographic_function_factory(languages, param)
+        distfunc = geographic_function_factory(languages)
         return build_matrix(languages, distfunc)
     return matrix_builder
 
 def build_optimal_geographic_matrix(languages):
-    distfunc = geographic_function_factory(languages, None)
-    return build_matrix(languages, distfunc)
+    with open("calibration_results/optimal_geographic_parameters", "r") as fp:
+        intercept = float(fp.readline().strip())
+        slope = float(fp.readline().strip())
+    geographic_distance = geographic_function_factory(languages, intercept, slope)
+    return build_matrix(languages, geographic_distance)
 
 ##########
 # GENETIC STUFF
 ##########
 
-def genetic_function_factory(param):
+def genetic_function_factory(param, intercept=0.0, slope=1.0):
     """
     Return a function which measures pairwise distances calculated
     using the GENETIC method with parameter param.
@@ -97,7 +99,7 @@ def genetic_function_factory(param):
                 similarity += param**(i+1)
         maxsim = sum([param**(i+1) for i in range(0,n)])
         distance = (maxsim - similarity) / maxsim
-        return distance
+        return intercept + slope*distance
     return genetic_distance
 
 def genetic_matrix_factory(param):
@@ -112,9 +114,11 @@ def genetic_matrix_factory(param):
     return matrix_builder
 
 def build_optimal_genetic_matrix(languages):
-    with open("calibration_results/optimal_genetic_parameter", "r") as fp:
-        optimal_param = float(fp.readline().strip())
-    genetic_distance = genetic_function_factory(optimal_param)
+    with open("calibration_results/optimal_genetic_parameters", "r") as fp:
+        intercept = float(fp.readline().strip())
+        slope = float(fp.readline().strip())
+        param = float(fp.readline().strip())
+    genetic_distance = genetic_function_factory(param, intercept, slope)
     return build_matrix(languages, genetic_distance)
 
 ##########
@@ -154,27 +158,29 @@ def build_comparators():
 	comparators["location"] = haversine_distance
 	return comparators
 
-def feature_function_factory(weights=None):
+def feature_function_factory(weights, intercept=0, slope=1.0):
     """
     Return a function which computes pairwise distances according
     to the FEATURE method, with feature weights as given by weights.
     """
     comparators = build_comparators()
-    if not weights:
-        weights = {}
     def feature_distance(lang1, lang2):
         dist = 0
         norm = 0
-        for key in lang1.data:
-            if key not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "Order of Subject and Verb", "Order of Object and Verb", "iso_codes", "ethnoclass"] and not key.startswith("Relationship between the Order of Object and Verb"):
-               dist += weights.get(key, 1.0)*comparators[key](lang1.data[key], lang2.data[key])
-               norm += weights.get(key, 1.0)
-        return dist/norm
+        for feature in weights:
+            if feature not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "Order of Subject and Verb", "Order of Object and Verb", "iso_codes", "ethnoclass"] and not feature.startswith("Relationship between the Order of Object and Verb"):
+                if feature in lang1.data and feature in lang2.data:
+                    dist += weights[feature]*comparators[feature](lang1.data[feature], lang2.data[feature])
+                else:
+                    dist += weights[feature]*0.5
+                norm += weights[feature]
+                raw = dist/norm
+        return intercept + slope*raw
     return feature_distance
 
-def feature_matrix_factory(weights=None):
+def feature_matrix_factory(weights, intercept=0, slope=1.0):
     def matrix_builder(languages):
-        distfunc = feature_function_factory(weights)
+        distfunc = feature_function_factory(weights, intercept, slope)
         return build_matrix(languages, distfunc)
     return matrix_builder
 
@@ -186,7 +192,7 @@ def build_optimal_feature_matrix(languages):
             weight = float(weight.strip())
             feature = feature.strip()
             weights[feature] = weight
-    feature_distance = feature_function_factory(weights)
+    feature_distance = feature_function_factory(weights, intercept=weights["intercept"])
     return build_matrix(languages, feature_distance)
 
 ##########
@@ -194,11 +200,17 @@ def build_optimal_feature_matrix(languages):
 ##########
 
 def build_optimal_combination_matrix(languages):
-    geo = geographic_function_factory()
 
-    with open("calibration_results/optimal_genetic_parameter", "r") as fp:
-        optimal_param = float(fp.readline().strip())
-    gen = genetic_function_factory(optimal_param)
+    with open("calibration_results/optimal_geographic_parameters", "r") as fp:
+        intercept = float(fp.readline().strip())
+        slope = float(fp.readline().strip())
+    geo = geographic_function_factory(languages, intercept, slope)
+
+    with open("calibration_results/optimal_genetic_parameters", "r") as fp:
+        intercept = float(fp.readline().strip())
+        slope = float(fp.readline().strip())
+        param = float(fp.readline().strip())
+    gen = genetic_function_factory(param, intercept, slope)
 
     weights = {}
     with open("calibration_results/optimal_feature_weights", "r") as fp:
@@ -207,12 +219,12 @@ def build_optimal_combination_matrix(languages):
             weight = float(weight.strip())
             feature = feature.strip()
             weights[feature] = weight
-    feat = feature_function_factory(weights)
+    feat = feature_function_factory(weights, intercept=weights["intercept"])
 
     fp = open("calibration_results/optimal_combination_weights", "r")
-    geo_w, gen_w, feat_w = [float(line.split()[1]) for line in fp.readlines()]
+    intercept, geo_w, gen_w, feat_w = [float(line.split()[1]) for line in fp.readlines()]
     fp.close()
     def distfunc(l1, l2):
-        return geo_w*geo(l1, l2) + gen_w*gen(l1, l2) + feat_w*feat(l1, l2)
+        return intercept + geo_w*geo(l1, l2) + gen_w*gen(l1, l2) + feat_w*feat(l1, l2)
     return build_matrix(languages, distfunc)
 
