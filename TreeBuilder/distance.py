@@ -1,5 +1,7 @@
+import itertools
 from math import cos, sin, tan, atan, sqrt, pi, radians
 import math
+import numpy as np
 
 import codecs
 from random import shuffle, random
@@ -10,15 +12,18 @@ import pdb
 import numpy as np
 
 def build_matrix(languages, distance_function):
-    matrix = []
-    for x in range(0,len(languages)):
-        matrix.append([0]*len(languages))
-    for i in range(0,len(languages)):
-        for j in range(i,len(languages)):
-            if i == j:
-                continue
-            matrix[i][j] = distance_function(languages[i],languages[j])
-            matrix[j][i] = matrix[i][j]
+    n = len(languages)
+    matrix = np.zeros(shape=(n, n))
+    for i, j in itertools.combinations(range(0,n), 2):
+        d = distance_function(languages[i], languages[j])
+        matrix[i][j] = d
+        matrix[j][i] = d
+    maxd = matrix.max()
+    mind = matrix.min()
+    if maxd > 0:
+        matrix /= maxd
+    else:
+        matrix /= abs(mind)
     return matrix
 
 def build_matrix_by_method_name(languages, method):
