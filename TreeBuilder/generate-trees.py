@@ -62,10 +62,11 @@ def make_trees(languages, age_params, build_method, family_name, tree_count):
 
     # Build random variations of base matrix
     for index in range(0, tree_count):
-        failure = 0
+        failures = 0
         while failures < 10:
             try:
                 make_tree(base_matrix, age_params, build_method, family_name, index)
+                break
             except:
                 failures += 1
                 continue
