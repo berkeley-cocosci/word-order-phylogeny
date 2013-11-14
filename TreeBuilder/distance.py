@@ -20,10 +20,10 @@ def build_matrix(languages, distance_function):
         matrix[j][i] = d
     maxd = matrix.max()
     mind = matrix.min()
-    if maxd > 0:
-        matrix /= maxd
-    else:
+    if mind < 0:
         matrix /= abs(mind)
+    else:
+        matrix /= maxd
     return matrix
 
 def build_matrix_by_method_name(languages, method):
@@ -57,16 +57,20 @@ def haversine_distance(val1, val2):
 def geographic_function_factory(languages, intercept=0.0, slope=1.0):
     done = []
     maxdist = 0
+    mindist = 1000
     for i in range(0,len(languages)):
         for j in range(i,len(languages)):
             if i != j and (j,i) not in done:
                 done.append((i,j))
                 dist = haversine_distance(languages[i].data["location"], languages[j].data["location"])
-                if dist > maxdist:
-                    maxdist = dist
+                maxdist = max(maxdist, dist)
+                mindist = min(mindist, dist)
     def distance(lang1, lang2):
         linear = haversine_distance(lang1.data["location"], lang2.data["location"]) / maxdist
-        return intercept + slope*np.log(linear)
+        log = np.log(linear)
+        minlog = abs(np.log(mindist))
+        log /= minlog
+        return intercept + slope*log
     return distance
 
 def geographic_matrix_factory():
