@@ -5,17 +5,17 @@
 #include <unistd.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-
-#define BURNIN 5000
-#define SAMPLES 1000
-#define LAG 100
+#include<gsl/gsl_matrix.h>
+#include<gsl/gsl_matrix_complex_float.h>
+#include<gsl/gsl_vector.h>
+#include<gsl/gsl_vector_complex.h>
 
 #include "wordorders.h"
 #include "tree.h"
 #include "matrix.h"
-#include "beliefprop.h"
-#include "modellike.h"
 #include "mcmc.h"
+#include "modellike.h"
+#include "beliefprop.h"
 
 void generate_random_mutation_model(gsl_rng *r, gsl_vector *stabs, gsl_matrix *trans) {
 	int i;

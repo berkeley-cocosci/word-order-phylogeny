@@ -5,17 +5,16 @@
 #include <unistd.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include<gsl/gsl_matrix.h>
+#include<gsl/gsl_matrix_complex_float.h>
+#include<gsl/gsl_vector.h>
+#include<gsl/gsl_vector_complex.h>
 
 #define MIN_PROTOAGE 35000
 #define MAX_PROTOAGE 100000
 #define STEPS 100.0
 
 #include "tree.h"
-#include "matrix.h"
-#include "beliefprop.h"
-#include "modellike.h"
-#include "mcmc.h"
-#include "saveresults.h"
 
 void load_mean_ancestrals_and_q(char *filename, float (*ancestrals)[6], gsl_matrix *Q) {
 	FILE *fp;

@@ -1,21 +1,20 @@
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include<math.h>
+
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-
-#define BURNIN 5000
-#define SAMPLES 100
-#define LAG 10
+#include<gsl/gsl_matrix.h>
+#include<gsl/gsl_matrix_complex_float.h>
+#include<gsl/gsl_vector.h>
+#include<gsl/gsl_vector_complex.h>
 
 #include "tree.h"
 #include "matrix.h"
-#include "beliefprop.h"
-#include "modellike.h"
 #include "mcmc.h"
-#include "saveresults.h"
+#include "modellike.h"
+#include "beliefprop.h"
+
+#define LAG 10
 
 int main(int argc, char **argv) {
 
@@ -33,22 +32,14 @@ int main(int argc, char **argv) {
 	unsigned long int seed;
 	node_t **trees = calloc(sizeof(node_t*), 6);
 	double likelihood, prior, posterior, max_posterior = -1000000;
-	gsl_vector *ancestral_sum[6];
-	gsl_vector *ancestral_max[6];
 
 	gsl_vector *stabs = gsl_vector_alloc(6);
 	gsl_vector *stabs_dash = gsl_vector_alloc(6);
-	gsl_vector *stabs_sum = gsl_vector_alloc(6);
 	gsl_vector *stabs_max = gsl_vector_alloc(6);
 	gsl_matrix *trans = gsl_matrix_alloc(6, 6);
 	gsl_matrix *trans_dash = gsl_matrix_alloc(6, 6);
-	gsl_matrix *trans_sum = gsl_matrix_alloc(6, 6);
 	gsl_matrix *trans_max = gsl_matrix_alloc(6, 6);
-	gsl_vector_complex *evals = gsl_vector_complex_alloc(6);
-        gsl_matrix_complex *evecs = gsl_matrix_complex_alloc(6,6);
-        gsl_matrix_complex *evecs_inv = gsl_matrix_complex_alloc(6,6);
 	gsl_matrix *Q = gsl_matrix_alloc(6, 6);
-	gsl_matrix *P = gsl_matrix_alloc(6, 6);
 	gsl_rng *r = gsl_rng_alloc(gsl_rng_taus);
 
 
@@ -105,11 +96,6 @@ int main(int argc, char **argv) {
 	}
 	if(treefile == NULL) treefile = calloc(sizeof(char), 128);
 	if(leaffile == NULL) leaffile = calloc(sizeof(char), 128);
-	for(i=0; i<6; i++) {
-		if(i>0 && multitree == 0) break;
-		ancestral_sum[i] = gsl_vector_alloc(6);
-		ancestral_max[i] = gsl_vector_alloc(6);
-	}
 
 	// TODO check for conflicting options
 
@@ -147,7 +133,7 @@ int main(int argc, char **argv) {
 
 	/* Compute initial posteriors */
 	prior = log(get_prior(stabs, trans));
-	likelihood = get_model_likelihood(logfp, trees, Q, multitree);
+	likelihood = get_model_loglh(logfp, trees, Q, multitree);
 	posterior = prior + likelihood;
 	printf("Initial log posterior: %f\n", posterior);
 
@@ -164,7 +150,7 @@ int main(int argc, char **argv) {
 			for(j=0; j<25; j++) draw_proposal(logfp, r, stabs, stabs, trans, trans);
 			build_q(Q, stabs, trans);
 			prior = log(get_prior(stabs, trans));
-			likelihood = get_model_likelihood(logfp, trees, Q, multitree);
+			likelihood = get_model_loglh(logfp, trees, Q, multitree);
 			posterior = prior + likelihood;
 			printf("New initial log posterior: %f\n", posterior);
 			for(j=0; j<burnin; j++) posterior = mcmc_iteration(logfp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
@@ -180,7 +166,7 @@ int main(int argc, char **argv) {
 			}
 		}
 		fprintf(logfp, "POSTERTRACK: Sample number %d has log posterior %e.\n", i+1, posterior);
-		fprintf(logfp, "I've got %d of %d samples.\n", i, SAMPLES);
+		fprintf(logfp, "I've got %d of %d samples.\n", i, samples);
 		build_q(Q, stabs, trans);
 	        upwards_belprop(logfp, trees, Q, multitree);
 
@@ -214,5 +200,6 @@ int main(int argc, char **argv) {
 	fclose(samplesfp);
 	fclose(ancestralsfp);
 
+	return 0;
 }
 

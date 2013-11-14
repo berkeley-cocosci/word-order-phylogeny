@@ -1,3 +1,12 @@
+#include<gsl/gsl_matrix.h>
+#include<gsl/gsl_matrix_complex_float.h>
+#include<gsl/gsl_vector.h>
+#include<gsl/gsl_vector_complex.h>
+#include<gsl/gsl_eigen.h>
+#include<gsl/gsl_permutation.h>
+
+#include "matrix.h"
+
 void save_results(char *outfile, gsl_matrix *Q, gsl_vector **ancestral_sum, gsl_vector **ancestral_max, gsl_vector *stabs_sum, gsl_vector *stabs_max, gsl_matrix *trans_sum, gsl_matrix *trans_max, double max_posterior, int multitree) {
 
 	int i;

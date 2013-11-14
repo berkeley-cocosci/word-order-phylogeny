@@ -5,23 +5,16 @@
 #include <unistd.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-
-#define BURNIN 5000
-#define SAMPLES 100
-#define LAG 10
+#include<gsl/gsl_matrix.h>
+#include<gsl/gsl_matrix_complex_float.h>
+#include<gsl/gsl_vector.h>
+#include<gsl/gsl_vector_complex.h>
 
 #define SOV_TO_SVO 0
 #define SVO_TO_SOV 1
 #define VSO_TO_SOV 2
 #define SVO_MOST_STAB 3
 #define SOV_MOST_LIKE 4
-
-#include "tree.h"
-#include "matrix.h"
-#include "beliefprop.h"
-#include "modellike.h"
-#include "mcmc.h"
-#include "saveresults.h"
 
 struct summary_context {
 	gsl_vector *stabs_sum;
