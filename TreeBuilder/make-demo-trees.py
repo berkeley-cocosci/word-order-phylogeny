@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Super gross script to make some demonstration IE trees with
 # human friendly names
 
@@ -18,7 +20,7 @@ for i in range(1,11):
         print "Replacing ", number, " with ", trans[number]
         string = string.replace("(%d:" % number, "(%s:" % trans[number])
         string = string.replace(",%d:" % number, ",%s:" % trans[number])
-    fp = open("demo_trees/demo_indo_%d.tree" % i, "w")
+    fp = open("demo-trees/demo_indo_%d.tree" % i, "w")
     fp.write(string)
     fp.close()
 
@@ -27,7 +29,7 @@ trans = {}
 for key in backtrans:
     trans[backtrans[key]] = key
 
-for filename in glob.glob("demo_trees/*.tree"):
+for filename in glob.glob("demo-trees/*.tree"):
     fp = open(filename, "r")
     text = fp.read()
     fp.close()
