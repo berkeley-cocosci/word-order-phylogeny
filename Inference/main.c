@@ -17,18 +17,6 @@
 #include "mcmc.h"
 #include "saveresults.h"
 
-void count_transitions(FILE *fp, node_t *node, int transcount[][6]) {
-	if(node->left_child != NULL) {
-		transcount[node->ml_order][node->left_child->ml_order]++;
-		count_transitions(fp, node->left_child, transcount);
-	}
-	if(node->right_child != NULL) {
-		transcount[node->ml_order][node->right_child->ml_order]++;
-		count_transitions(fp, node->right_child, transcount);
-	}
-}
-
-
 int main(int argc, char **argv) {
 
 	// Variable setup, allocation, etc.
@@ -195,16 +183,12 @@ int main(int argc, char **argv) {
 		fprintf(logfp, "I've got %d of %d samples.\n", i, SAMPLES);
 		build_q(Q, stabs, trans);
 	        upwards_belprop(logfp, trees, Q, multitree);
-//		decompose_q(Q, evals, evecs, evecs_inv);
-//		compute_p(evals, evecs, evecs_inv, 0.1, P);
-//		record_sample(trees, ancestral_sum, stabs, trans, stabs_sum, trans_sum, multitree);
 
 		/* Record sample details */
 		fprintf(samplesfp, "Sample: %d\n", i+1);
 		fprintf(samplesfp, "Log posterior: %f\n", posterior);
 		fprint_vector(samplesfp, stabs);
 		fprint_matrix(samplesfp, trans);
-//		fprint_matrix(samplesfp, P);
 		fprintf(samplesfp, "----------\n");
 
 		/* Record ancestral distribution */
@@ -226,19 +210,9 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	//normalise_samples(ancestral_sum, stabs_sum, trans_sum, samples, multitree);
-	//build_q(Q, stabs_sum, trans_sum);
-	//upwards_belprop(logfp, trees, Q, multitree);
-
 	fclose(logfp);
 	fclose(samplesfp);
 	fclose(ancestralsfp);
-
-	// Save results
-	// strcpy(filename, outdir);
-	// strcat(filename, "/summary");
-	// save_results(filename, Q, ancestral_sum, ancestral_max, stabs_sum, stabs_max, trans_sum, trans_max, max_posterior, multitree);
-
 
 }
 
