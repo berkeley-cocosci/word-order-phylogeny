@@ -118,6 +118,15 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
     # Root at midpoint
     tree.reroot_at_midpoint()
 
+    # Sample change range parameters, and adjust branch lengths
+    # so they reflect *only* elapsed time, in preparation for age scaling
+    change_rates = {}
+    for edge in tree.get_edge_set():
+        if edge.tail_node:
+            rate = lognormvariate(0,0.25)
+            change_rates[edge.oid] = rate
+            edge.length /= rate
+
     # Sample tree age
     # age_params is a tuple of mean ages
     # Choose one mean at random (equally weighted mixture model)
@@ -130,6 +139,11 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
     desiredmax = age/10000.0
     scalefactor = desiredmax / maxlength 
     tree.scale_edges(scalefactor)
+
+    # Reapply change rates
+    for edge in tree.get_edge_set():
+        if edge.oid in change_rates:
+            edge.length *= change_rates[edge.oid]
 
     # Write newly scaled and rooted tree out to Newick file
     fp = open("%s.tree" % filename, "w")
