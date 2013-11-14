@@ -3,6 +3,7 @@
 from codecs import open
 import os
 from sys import exit
+import sys
 import sqlite3
 from random import shuffle, gauss, sample, normalvariate, lognormvariate
 from copy import deepcopy
@@ -10,6 +11,9 @@ from copy import deepcopy
 import fileio
 from distance import *
 import dendropy
+
+sys.path.append("../WALS2SQL/")
+import wals2sql
 
 NOISES = {}
 NOISES["geographic"] = 0.05 # was 001
@@ -25,35 +29,6 @@ class Language:
 	self.name = "BAR"
 	self.data = {}
 		
-def get_languages_by_family(conn, cursor, family):
-    ethnoclasses = load_ethnologue_classifications()
-    cursor.execute("""SELECT wals_code FROM languages WHERE family=? AND iso_codes != ''""", (family,))
-    codes = [code[0] for code in cursor.fetchall()]
-    languages = map(lambda(x): language_from_wals_code(conn, cursor, x), codes)
-    languages = map(lambda(x): apply_ethnoclass(x, ethnoclasses), languages)
-    languages = filter(lambda(x): x.data["ethnoclass"].split(",")[0].strip() == x.data["family"], languages)
-    languages = filter(lambda(x): x.data.get(bwo, None) not in (7,'7',None), languages)
-    hierlengths = [len(x.data["ethnoclass"].split(",")[1:]) for x in languages ]
-    return languages
-
-def language_from_wals_code(conn, cursor, code):
-    lang = Language()
-    cursor.execute('''SELECT * FROM languages WHERE wals_code=?''',(code,))
-    results = cursor.fetchone()
-    lang.code = results[0]
-    lang.name = results[1].replace(" ","_").replace("(","").replace(")","")
-    lang.data = {}
-    lang.data["location"] = (float(results[2]),float(results[3]))
-    lang.data["genus"] = results[4]
-    lang.data["family"] = results[5]
-    lang.data["subfamily"] = results[6]
-    lang.data["iso_codes"] = results[7]
-    cursor.execute('''SELECT name, value_id FROM speedyfeatures WHERE wals_code=?''',(code,))
-    for x in cursor.fetchall():
-        name, value = x
-        lang.data[name] = value
-    return lang
-
 def has_negative_branches(tree):
     for edge in tree.get_edge_set():
         if edge.length and edge.length < 0:
@@ -81,90 +56,94 @@ def fix_negative_branches(tree):
 
 def make_trees(languages, age_params, build_method, family_name, tree_count):
 
+    # Build base matrix according to specified method
     base_matrix = build_matrix_by_method_name(languages, build_method)
+    assert base_matrix.min() >=0
+
+    # Build random variations of base matrix
     for index in range(0, tree_count):
-        make_tree(base_matrix, age_params, build_method, family_name, index)
+        failures = 0
+        while failures < 10:
+            try:
+                make_tree(base_matrix, age_params, build_method, family_name, index)
+                break
+            except:
+                failures += 1
+                continue
+        if failures == 10:
+            print "Aborting after sustained failure to generated %d-th tree with the following parameters:" % index
+            print build_method, family_name, tree_count
+            exit(42)
 
 def make_tree(base_matrix, age_params, build_method, family_name, index):
 
-    # Age params is a tuple of mean ages
+    matrix = deepcopy(base_matrix)
+
+    # Add random noise
+    # The biggest distance is now 1.0
+    # Let's set our Gaussian parameters so that we very rarely add/take more than 0.2
+    # to/from a distance.  3sigma = 0.2 => sigma = 0.0666
+    for j in range(0, len(matrix)):
+        for k in range(j+1, len(matrix)):
+            matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, 0.0666))
+            matrix[k][j] = matrix[j][k]
+
+    # Renormalise matrix
+    norm = max([max(row) for row in matrix])
+    for j in range(0, len(matrix)):
+        for k in range(j+1, len(matrix)):
+            matrix[j][k] /= norm
+            matrix[k][j] = matrix[j][k]
+
+    # Save the matrix and generate a tree from it
+    filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
+    directory = os.path.dirname(filename)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    fileio.save_matrix(matrix, filename+".distance")
+
+    # Use NINJA to do Neighbour Joining
+    os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.tree" % (filename, filename))
+
+    # Read output of NINJA into Dendropy Tree
+    fp = open("%s.tree" % filename, "r")
+    tree_string = fp.read()
+    fp.close()
+    tree = dendropy.Tree.get_from_string(tree_string, "newick")
+
+    # Fix any negative branches
+    if has_negative_branches(tree):
+        fix_negative_branches(tree)
+
+    # Root at midpoint
+    tree.reroot_at_midpoint()
+
+    # Sample change range parameters, and adjust branch lengths
+    # so they reflect *only* elapsed time, in preparation for age scaling
+    change_rates = {}
+    for edge in tree.get_edge_set():
+        if edge.tail_node:
+            rate = lognormvariate(0,0.25)
+            change_rates[edge.oid] = rate
+            edge.length /= rate
+
+    # Sample tree age
+    # age_params is a tuple of mean ages
     # Choose one mean at random (equally weighted mixture model)
     # Standard deviation is always 20% of the mean
     shuffle(age_params)
     age = gauss(age_params[0], age_params[0]*0.25/2)
 
-    matrix = deepcopy(base_matrix)
-    failures = 0
-    while failures < 5:
-        # Normalise the matrix
-        norm = max([max(row) for row in matrix])
-        for j in range(0, len(matrix)):
-            for k in range(j+1, len(matrix)):
-                matrix[j][k] /= norm
-
-        # Add random noise
-        # The biggest distance is now 1.0
-        # Let's set our Gaussian parameters so that we very rarely add/take more than 0.2
-        # to/from a distance.  3sigma = 0.2 => sigma = 0.0666
-        for j in range(0, len(matrix)):
-            for k in range(j+1, len(matrix)):
-                matrix[j][k] = max(0.0, matrix[j][k] + gauss(0, 0.0666))
-                matrix[k][j] = matrix[j][k]
-
-        # Randomly generate a ratio of highest pairwise distanc to lowest,
-        # based on the apparent distribution in authoritative trees
-        r = gauss(12.4, 1.04)
-        minn = min([min(row) for row in matrix])
-        maxx = max([max(row) for row in matrix])
-        offset = (maxx - r*minn) / (r-1)
-
-        # Add offset and renormalise matrix in one go
-        norm = offset + max([max(row) for row in matrix])
-        for j in range(0, len(matrix)):
-            for k in range(j+1, len(matrix)):
-                matrix[j][k] += offset
-                matrix[j][k] /= norm
-                matrix[k][j] = matrix[j][k]
-
-        # Save the matrix and generate a tree from it
-        filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
-        directory = os.path.dirname(filename)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        fileio.save_matrix(matrix, filename+".distance")
-
-        # Use NINJA to do Neighbour Joining
-        os.system("java -jar ./ninja/Ninja.jar --in_type d ./%s.distance > %s.tree" % (filename, filename))
-
-        # Read output of NINJA into Dendropy Tree
-        fp = open("%s.tree" % filename, "r")
-        tree_string = fp.read()
-        fp.close()
-        tree = dendropy.Tree.get_from_string(tree_string, "newick")
-
-        # Die on negative branch length
-        if has_negative_branches(tree):
-            try:
-                fix_negative_branches(tree)
-            except:
-                failures += 1
-                continue
-
-        break
-
-    if failures == 5:
-        # We tried 5 times to build a tree without negatives and failed
-        print "Dying due to persistent negative branch problem!"
-        exit(42)
-
-    # Root at midpoint
-    tree.reroot_at_midpoint()
-
-    # Scale to fit age.
+    # Scale to fit age
     maxlength = max([leaf.distance_from_root() for leaf in tree.leaf_nodes()])
     desiredmax = age/10000.0
     scalefactor = desiredmax / maxlength 
     tree.scale_edges(scalefactor)
+
+    # Reapply change rates
+    for edge in tree.get_edge_set():
+        if edge.oid in change_rates:
+            edge.length *= change_rates[edge.oid]
 
     # Write newly scaled and rooted tree out to Newick file
     fp = open("%s.tree" % filename, "w")
@@ -267,12 +246,12 @@ def main():
     cursor.execute('''CREATE INDEX wals_code_index ON speedyfeatures(wals_code)''')
 
 
-    afrolangs = get_languages_by_family(conn, cursor, "Afro-Asiatic")
-    austrolangs = get_languages_by_family(conn, cursor, "Austronesian")
-    indolangs = get_languages_by_family(conn, cursor, "Indo-European")
-    nigerlangs = get_languages_by_family(conn, cursor, "Niger-Congo")
-    nilolangs = get_languages_by_family(conn, cursor, "Nilo-Saharan")
-    sinolangs = get_languages_by_family(conn, cursor, "Sino-Tibetan")
+    afrolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Afro-Asiatic")
+    austrolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Austronesian")
+    indolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Indo-European")
+    nigerlangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Niger-Congo")
+    nilolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Nilo-Saharan")
+    sinolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Sino-Tibetan")
     cursor.close()
     conn.close()
 
@@ -289,8 +268,7 @@ def main():
         fileio.save_translate_file(langs, "generated_trees/" + name + ".translate")
         fileio.save_multistate_file(langs, "generated_trees/" + name + ".leafdata")
 
-    #for method in ("genetic", "geographic", "feature", "combination"):
-    for method in ("combination",):
+    for method in ("geographic", "genetic", "feature", "combination"):
         for langs, age, name in zip(languages, ages, names):
             make_trees(langs, age, method, name, 100)
 
