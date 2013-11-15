@@ -14,8 +14,6 @@
 #include "modellike.h"
 #include "beliefprop.h"
 
-#define LAG 10
-
 int main(int argc, char **argv) {
 
 	// Variable setup, allocation, etc.
@@ -28,7 +26,7 @@ int main(int argc, char **argv) {
 	char mkcmd[1024];
 	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
 	char types[][16] = {"geographic", "genetic", "feature", "combination" };
-	int burnin, samples;
+	int burnin, lag, samples;
 	unsigned long int seed;
 	node_t **trees = calloc(sizeof(node_t*), 6);
 	double likelihood, prior, posterior, max_posterior = -1000000;
@@ -59,6 +57,7 @@ int main(int argc, char **argv) {
 	// defaults
 	multitree = 0;
 	burnin = 5000;
+	lag = 100;
 	samples = 1000;
 	treefile = NULL;
 	leaffile = NULL;
@@ -156,7 +155,7 @@ int main(int argc, char **argv) {
 			for(j=0; j<burnin; j++) posterior = mcmc_iteration(logfp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
 		}
 
-		for(j=0; j<LAG; j++) {
+		for(j=0; j<lag; j++) {
 			posterior = mcmc_iteration(logfp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
 			if(posterior > max_posterior) {
 				max_posterior = posterior;
