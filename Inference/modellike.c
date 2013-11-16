@@ -99,9 +99,7 @@ void compute_likelihood(node_t *node, double *likelihood, gsl_vector_complex *ev
 
 		// LEFT SIDE
 		compute_p(evals, evecs, evecs_inv, node->left_branch, P);
-		for(i=0; i<6; i++) {
-			node->left_child->dist[i] = 0;
-		}
+		memset(node->left_child->dist, 0, 6*sizeof(double));
 		for(i=0; i<6; i++) {
 			// Assume I am i
 			for(j=0; j<6; j++) {
@@ -112,9 +110,7 @@ void compute_likelihood(node_t *node, double *likelihood, gsl_vector_complex *ev
 		compute_likelihood(node->left_child, likelihood, evals, evecs, evecs_inv, P);
 		// RIGHT SIDE
 		compute_p(evals, evecs, evecs_inv, node->right_branch, P);
-		for(i=0; i<6; i++) {
-			node->right_child->dist[i] = 0;
-		}
+		memset(node->right_child->dist, 0, 6*sizeof(double));
 		for(i=0; i<6; i++) {
 			// Assume I am i
 			for(j=0; j<6; j++) {

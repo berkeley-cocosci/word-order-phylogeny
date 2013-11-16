@@ -34,14 +34,12 @@ void reset_tree(node_t *node) {
 			node->dist[i] = node->l_message[i];
 		}
 	} else {
-		for(i=0; i<6; i++) {
-			node->dist[i] = 0;
-			node->cache[i] = 0;
-			node->has_cached[i] = 0;
-			node->l_message[i] = 0;
-			node->r_message[i] = 0;
-			node->p_message[i] = 0;
-		}
+		memset(node->dist, 0, 6*sizeof(double));
+		memset(node->cache, 0, 6*sizeof(double));
+		memset(node->has_cached, 0, 6*sizeof(int));
+		memset(node->l_message, 0, 6*sizeof(double));
+		memset(node->r_message, 0, 6*sizeof(double));
+		memset(node->p_message, 0, 6*sizeof(double));
 	}
 	if(node->left_child != NULL) reset_tree(node->left_child);
 	if(node->right_child != NULL) reset_tree(node->right_child);
