@@ -13,45 +13,48 @@
 #include "mcmc.h"
 #include "modellike.h"
 #include "beliefprop.h"
+#include "sampman.h"
+
+void handle_treeset(FILE *logfp, mcmc_t *mcmc, node_t **trees, sampman_t *sm, int burnin, int samples, int lag, int multitree) {
+	int i, j;
+	/* Burn in */
+	for(i=0; i<burnin; i++) mcmc_iteration(logfp, mcmc, trees, multitree);
+	/* Take samples */
+	for(i=0; i<samples; i++) {
+		if(gsl_rng_uniform_int(mcmc->r, 10000) >= 9999) {
+			/* Random restart! */
+			random_restart(mcmc);
+			compute_probabilities(mcmc, trees, multitree);
+			for(i=0; i<burnin; i++) mcmc_iteration(logfp, mcmc, trees, multitree);
+		}
+
+		for(j=0; j<lag; j++) {
+			mcmc_iteration(logfp, mcmc, trees, multitree);
+		}
+
+		build_q(mcmc);
+		upwards_belprop(logfp, trees, mcmc->Q, multitree);
+
+		/* Record sample */
+		process_sample(sm, mcmc, trees);
+	}
+}
 
 int main(int argc, char **argv) {
 
 	// Variable setup, allocation, etc.
-	FILE *logfp, *samplesfp, *ancestralsfp;
-	int i, j, k, c;
+	FILE *logfp;
+	int i, c;
 	int logging = 0;
 	int multitree, treeindex, treeclass;
 	char *treefile, *leaffile, *outdir;
-	char filename[1024];
-	char mkcmd[1024];
 	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
 	char types[][16] = {"geographic", "genetic", "feature", "combination" };
 	int burnin, lag, samples;
-	unsigned long int seed;
 	node_t **trees = calloc(sizeof(node_t*), 6);
-	double likelihood, prior, posterior, max_posterior = -1000000;
+	mcmc_t mcmc;
+	sampman_t sm;
 
-	gsl_vector *stabs = gsl_vector_alloc(6);
-	gsl_vector *stabs_dash = gsl_vector_alloc(6);
-	gsl_vector *stabs_max = gsl_vector_alloc(6);
-	gsl_matrix *trans = gsl_matrix_alloc(6, 6);
-	gsl_matrix *trans_dash = gsl_matrix_alloc(6, 6);
-	gsl_matrix *trans_max = gsl_matrix_alloc(6, 6);
-	gsl_matrix *Q = gsl_matrix_alloc(6, 6);
-	gsl_rng *r = gsl_rng_alloc(gsl_rng_taus);
-
-
-	/* Seed random generator */
-	/* (Borrow the logfile handler to save variables) */
-	logfp = fopen("/dev/urandom", "r");
-	fread(&seed, sizeof(seed), 1, logfp);
-	fclose(logfp);
-	gsl_rng_set(r, seed);
-
-	/* Initialise some things */
-	initialise_stabs(stabs, 1.0);
-	initialise_trans(r, trans);
-	build_q(Q, stabs, trans);
 
 	// Option parsing
 	// defaults
@@ -105,100 +108,32 @@ int main(int argc, char **argv) {
 		logfp = fopen("/dev/null", "w");
 	}
 	// Open other files
-	sprintf(mkcmd, "mkdir -p %s", outdir);
-	system(mkcmd);
-	strcpy(filename, outdir);
-	strcat(filename, "/samples");
-	samplesfp = fopen(filename, "w");
-	strcpy(filename, outdir);
-	strcat(filename, "/ancestrals");
-	ancestralsfp = fopen(filename, "w");
-	
-	fprintf(logfp, "Default Q:\n");
-	fprint_matrix(logfp, Q);
 
-	/* Build trees */
-	if(multitree) {
-		for(i=0; i<6; i++) {
-			sprintf(treefile, "../TreeBuilder/generated_trees/%s/%s/tree_%d.simple", types[treeclass], families[i], treeindex);
-			sprintf(leaffile, "../TreeBuilder/generated_trees/%s.leafdata", families[i]);
-			trees[i] = build_tree(treefile, leaffile);
-			reset_tree(trees[i]);
-		}	
-	} else {
-		trees[0] = build_tree(treefile, leaffile);
-		reset_tree(trees[0]);
-	}
+	initialise_sampman(&sm, outdir);
+	initialise_mcmc(&mcmc);
 
-	/* Compute initial posteriors */
-	prior = log(get_prior(stabs, trans));
-	likelihood = get_model_loglh(logfp, trees, Q, multitree);
-	posterior = prior + likelihood;
-	printf("Initial log posterior: %f\n", posterior);
-
-	/* Burn in */
-	for(i=0; i<burnin; i++) posterior = mcmc_iteration(logfp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
-	for(i=0; i<samples; i++) {
-		if(gsl_rng_uniform_int(r, 10000) >= 9999) {
-			/* Random restart! */
-			fprintf(logfp, "Random restart!\n");
-			initialise_stabs(stabs, 1.0);
-			initialise_trans(r, trans);
-
-			// Pick a new random starting point by unconditionally accepting a few proposals
-			for(j=0; j<25; j++) draw_proposal(logfp, r, stabs, stabs, trans, trans);
-			build_q(Q, stabs, trans);
-			prior = log(get_prior(stabs, trans));
-			likelihood = get_model_loglh(logfp, trees, Q, multitree);
-			posterior = prior + likelihood;
-			printf("New initial log posterior: %f\n", posterior);
-			for(j=0; j<burnin; j++) posterior = mcmc_iteration(logfp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
-		}
-
-		for(j=0; j<lag; j++) {
-			posterior = mcmc_iteration(logfp, r, trees, stabs, stabs_dash, trans, trans_dash, posterior, multitree);
-			if(posterior > max_posterior) {
-				max_posterior = posterior;
-				printf("Max posterior: %e\n", posterior);
-				vector_copy(stabs, stabs_max);
-				matrix_copy(trans, trans_max);
-			}
-		}
-		fprintf(logfp, "POSTERTRACK: Sample number %d has log posterior %e.\n", i+1, posterior);
-		fprintf(logfp, "I've got %d of %d samples.\n", i, samples);
-		build_q(Q, stabs, trans);
-	        upwards_belprop(logfp, trees, Q, multitree);
-
-		/* Record sample details */
-		fprintf(samplesfp, "Sample: %d\n", i+1);
-		fprintf(samplesfp, "Log posterior: %f\n", posterior);
-		fprint_vector(samplesfp, stabs);
-		fprint_matrix(samplesfp, trans);
-		fprintf(samplesfp, "----------\n");
-
-		/* Record ancestral distribution */
+	// Loop over trees...
+	for(treeindex=0; treeindex<5; treeindex++) {
+		/* Build tree(s) */
 		if(multitree) {
-			for(j=0; j<6; j++) {
-				fprintf(ancestralsfp, families[j]);
-				fprintf(ancestralsfp, ": ");
-				for(k=0; k<5; k++) {
-					fprintf(ancestralsfp, "%f ", trees[j]->dist[k]);
-				}
-				fprintf(ancestralsfp, "%f\n", trees[j]->dist[5]);
-			}
-			fprintf(ancestralsfp, "----------\n");
+			for(i=0; i<6; i++) {
+				sprintf(treefile, "../TreeBuilder/generated_trees/%s/%s/tree_%d.simple", types[treeclass], families[i], treeindex+1);
+				sprintf(leaffile, "../TreeBuilder/generated_trees/%s.leafdata", families[i]);
+				trees[i] = build_tree(treefile, leaffile);
+				reset_tree(trees[i]);
+			}	
 		} else {
-			for(k=0; k<5; k++) {
-				fprintf(ancestralsfp, "%f ", trees[0]->dist[k]);
-			}
-			fprintf(ancestralsfp, "%f\n", trees[0]->dist[5]);
+			trees[0] = build_tree(treefile, leaffile);
+			reset_tree(trees[0]);
 		}
+
+		/* Draw samples for this tree (set) */
+		compute_probabilities(&mcmc, trees, multitree);
+		handle_treeset(logfp, &mcmc, trees, &sm, burnin, samples, lag, multitree);
 	}
 
+	// Finish up
+	shout_out(&sm);
 	fclose(logfp);
-	fclose(samplesfp);
-	fclose(ancestralsfp);
-
 	return 0;
 }
-

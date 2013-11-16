@@ -15,267 +15,247 @@
 
 #include "tree.h"
 #include "matrix.h"
+#include "mcmc.h"
 #include "modellike.h"
 
-void initialise_stabs(gsl_vector *stabs, double x) {
-	int i;
+
+void initialise_mcmc(mcmc_t *mcmc) {
+	unsigned long int seed;
+	FILE *fp;
+	/* Allocate memory */
+	mcmc->r = gsl_rng_alloc(gsl_rng_taus);
+	mcmc->stabs = gsl_vector_alloc(6);
+	mcmc->stabs_dash = gsl_vector_alloc(6);
+	mcmc->stabs_max = gsl_vector_alloc(6);
+	mcmc->trans = gsl_matrix_alloc(6, 6);
+	mcmc->trans_dash = gsl_matrix_alloc(6, 6);
+	mcmc->trans_max = gsl_matrix_alloc(6, 6);
+	mcmc->Q = gsl_matrix_alloc(6, 6);
+	mcmc->Q_dash = gsl_matrix_alloc(6, 6);
+
+	/* Seed PRNG */
+	fp = fopen("/dev/urandom", "r");
+	fread(&seed, sizeof(seed), 1, fp);
+	fclose(fp);
+	gsl_rng_set(mcmc->r, seed);
+
+	/* Initialise some variables */
+	initialise_stabs(mcmc, 1.0);
+	initialise_trans(mcmc);
+	build_q(mcmc);
+}
+
+void compute_probabilities(mcmc_t *mcmc, node_t **trees, int multitree) {
+	mcmc->log_prior = get_log_prior(mcmc->stabs, mcmc->trans);
+	mcmc->log_lh = get_model_loglh(trees, mcmc->Q, multitree);
+	mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
+}
+
+void random_restart(mcmc_t *mcmc) {
+	uint8_t i;
+	initialise_stabs(mcmc, 1.0);
+	initialise_trans(mcmc);
+	for(i=0; i<25; i++) draw_proposal(mcmc);
+}
+
+void initialise_stabs(mcmc_t *mcmc, double x) {
+	uint8_t i;
 	for(i=0; i<6; i++) {
-		gsl_vector_set(stabs, i, x);
+		gsl_vector_set(mcmc->stabs, i, x);
 	}
 }
 
-void initialise_trans(gsl_rng *r, gsl_matrix *trans) {
+void initialise_trans(mcmc_t *mcmc) {
 	int i, j;
 	double norm;
-	gsl_matrix_set_zero(trans);
+	gsl_matrix_set_zero(mcmc->trans);
 	for(i=0; i<6; i++) {
 		for(j=0; j<6; j++) {
-			if(i != j) gsl_matrix_set(trans, i, j, 1.0/5);
+			if(i != j) gsl_matrix_set(mcmc->trans, i, j, 1.0/5);
 		}
 		norm = 0;
 		for(j=0; j<6; j++) {
-			norm+= gsl_matrix_get(trans, i, j);
+			norm+= gsl_matrix_get(mcmc->trans, i, j);
 		}
 		for(j=0; j<6; j++) {
-			gsl_matrix_set(trans, i, j, gsl_matrix_get(trans, i, j)/norm);
+			gsl_matrix_set(mcmc->trans, i, j, gsl_matrix_get(mcmc->trans, i, j)/norm);
 		}
 	}
 }
 
-void build_q(gsl_matrix *Q, gsl_vector *stabs, gsl_matrix *trans) {
+void build_q(mcmc_t *mcmc) {
 	int i, j;
 	double diag, prod;
 	for(i=0; i<6; i++) {
 		diag = 0.0;
 		for(j=0; j<6; j++) {
 			if(i != j) {
-				prod = gsl_vector_get(stabs, i)*gsl_matrix_get(trans, i, j);
-				gsl_matrix_set(Q, i, j, prod);
+				prod = gsl_vector_get(mcmc->stabs, i)*gsl_matrix_get(mcmc->trans, i, j);
+				gsl_matrix_set(mcmc->Q, i, j, prod);
 				diag -= prod;
 			}
 		}
-		gsl_matrix_set(Q, i, i, diag);
+		gsl_matrix_set(mcmc->Q, i, i, diag);
 	}
 }
-double get_prior(gsl_vector *stabs, gsl_matrix *trans) {
-	double prior = 1;
-	int i;
+
+void build_q_dash(mcmc_t *mcmc) {
+	int i, j;
+	double diag, prod;
 	for(i=0; i<6; i++) {
-		prior *= gsl_ran_exponential_pdf(gsl_vector_get(stabs, i), 3.0);
+		diag = 0.0;
+		for(j=0; j<6; j++) {
+			if(i != j) {
+				prod = gsl_vector_get(mcmc->stabs_dash, i)*gsl_matrix_get(mcmc->trans_dash, i, j);
+				gsl_matrix_set(mcmc->Q_dash, i, j, prod);
+				diag -= prod;
+			}
+		}
+		gsl_matrix_set(mcmc->Q_dash, i, i, diag);
 	}
-	return prior;
 }
 
-void swap_column_step(FILE *fp, gsl_rng *r, gsl_matrix *Q) {
+void swap_column_step(mcmc_t *mcmc) {
 	double var;
 	int i, j, k;
-	i = gsl_rng_uniform_int(r, 6);
+	i = gsl_rng_uniform_int(mcmc->r, 6);
 	j = i;
-	while(j == i) j = gsl_rng_uniform_int(r, 6);
+	while(j == i) j = gsl_rng_uniform_int(mcmc->r, 6);
 	k = i;
-	while(k == i || k == j) k = gsl_rng_uniform_int(r, 6);
-	var = gsl_matrix_get(Q, j, i);
-	gsl_matrix_set(Q, j, i, gsl_matrix_get(Q, k, i));
-	gsl_matrix_set(Q, k, i, var);
+	while(k == i || k == j) k = gsl_rng_uniform_int(mcmc->r, 6);
+	var = gsl_matrix_get(mcmc->Q_dash, j, i);
+	gsl_matrix_set(mcmc->Q_dash, j, i, gsl_matrix_get(mcmc->Q_dash, k, i));
+	gsl_matrix_set(mcmc->Q_dash, k, i, var);
 }
 
-void swap_row_step(FILE *fp, gsl_rng *r, gsl_matrix *Q) {
+void swap_row_step(mcmc_t *mcmc) {
 	double var;
 	int i, j, k;
-	i = gsl_rng_uniform_int(r, 6);
+	i = gsl_rng_uniform_int(mcmc->r, 6);
 	j = i;
-	while(j == i) j = gsl_rng_uniform_int(r, 6);
+	while(j == i) j = gsl_rng_uniform_int(mcmc->r, 6);
 	k = i;
-	while(k == i || k == j) k = gsl_rng_uniform_int(r, 6);
-	var = gsl_matrix_get(Q, i, j);
-	gsl_matrix_set(Q, i, j, gsl_matrix_get(Q, i, k));
-	gsl_matrix_set(Q, i, k, var);
+	while(k == i || k == j) k = gsl_rng_uniform_int(mcmc->r, 6);
+	var = gsl_matrix_get(mcmc->Q, i, j);
+	gsl_matrix_set(mcmc->Q_dash, i, j, gsl_matrix_get(mcmc->Q_dash, i, k));
+	gsl_matrix_set(mcmc->Q_dash, i, k, var);
 }
 
-void add_step(FILE *fp, gsl_rng *r, gsl_matrix *Q, double variance) {
+void add_step(mcmc_t *mcmc, double variance) {
 	double var;
 	int i, j;
-	i = gsl_rng_uniform_int(r, 6);
+	i = gsl_rng_uniform_int(mcmc->r, 6);
 	j = i;
-	while(j == i) j = gsl_rng_uniform_int(r, 6);
-	var = gsl_ran_gaussian(r, variance);
-	gsl_matrix_set(Q, i, j, fabs(gsl_matrix_get(Q, i, j) + var));
+	while(j == i) j = gsl_rng_uniform_int(mcmc->r, 6);
+	var = gsl_ran_gaussian(mcmc->r, variance);
+	gsl_matrix_set(mcmc->Q_dash, i, j, fabs(gsl_matrix_get(mcmc->Q_dash, i, j) + var));
 }
 
-void draw_proposal(FILE *fp, gsl_rng *r, gsl_vector *stabs, gsl_vector *stabs_dash, gsl_matrix *trans, gsl_matrix *trans_dash) {
-	gsl_matrix *Q = gsl_matrix_alloc(6, 6);
+void draw_proposal(mcmc_t *mcmc) {
 	double var;
 	int i, j;
 
-	/* Turn stabs and trans into Q */	
-	build_q(Q, stabs, trans);
-	vector_copy(stabs, stabs_dash);
-	matrix_copy(trans, trans_dash);
+	/* Build Q out of current stabs and trans */
+	/* Copy Q into Q dash */
+	build_q(mcmc);
+	gsl_matrix_memcpy(mcmc->Q_dash, mcmc->Q);
 
-	/* Change Q */
-	i = gsl_rng_uniform_int(r, 8);
+	/* Change Q dash */
+	i = gsl_rng_uniform_int(mcmc->r, 8);
 	switch(i) {
 		case 0:
-			add_step(fp, r, Q, 0.001);
+			add_step(mcmc, 0.001);
 			break;
 		case 1:
-			add_step(fp, r, Q, 0.01);
+			add_step(mcmc, 0.01);
 			break;
 		case 2:
-			add_step(fp, r, Q, 0.10);
+			add_step(mcmc, 0.10);
 			break;
 		case 3:
-			add_step(fp, r, Q, 1.00);
+			add_step(mcmc, 1.00);
 			break;
 		case 4:
 		case 5:
-			swap_row_step(fp, r, Q);
+			swap_row_step(mcmc);
 			break;
 		case 6:
 		case 7:
-			swap_column_step(fp, r, Q);
+			swap_column_step(mcmc);
 			break;
 	}
 
-	/* Break Q back into stabs and trans */
+	/* Break Q_dash up into stabs_dash and trans_dash */
 	for(i=0; i<6; i++) {
 		var = 0;
 		for(j=0; j<6; j++) {
-			if(i != j) var += gsl_matrix_get(Q, i, j);
+			if(i != j) var += gsl_matrix_get(mcmc->Q_dash, i, j);
 		}
-		gsl_vector_set(stabs_dash, i, var);
+		gsl_vector_set(mcmc->stabs_dash, i, var);
 		for(j=0; j<6; j++) {
-			if(i != j) gsl_matrix_set(trans_dash, i, j, gsl_matrix_get(Q, i, j)/var);
-		}
-	}
-	gsl_matrix_free(Q);
-}
-
-void broken_draw_proposal(FILE *fp, gsl_rng *r, gsl_vector *stabs, gsl_vector *stabs_dash, gsl_matrix *trans, gsl_matrix *trans_dash) {
-	int i, j;
-	double new, delta;
-	vector_copy(stabs, stabs_dash);
-	matrix_copy(trans, trans_dash);
-	if(gsl_rng_uniform_int(r, 11) >= 8) {
-		/* Change a stability */
-		i = gsl_rng_uniform_int(r, 6);
-		delta = gsl_ran_gaussian(r, 0.1);
-		gsl_vector_set(stabs_dash, i, fabs(gsl_vector_get(stabs_dash, i) + delta));
-	} else {
-		/* Change a transition probability */
-		fprintf(fp, "Changing transition probability!");
-		i = gsl_rng_uniform_int(r, 6);
-		j = i;
-		while(j == i) {
-			j = gsl_rng_uniform_int(r, 6);
-		}
-		delta = gsl_ran_gaussian(r, 0.3);
-		new = fabs(gsl_matrix_get(trans_dash, i, j) + delta);
-		gsl_matrix_set(trans_dash, i, j, new);
-		/* Renormalise */
-		delta = 0;
-		for(j=0; j<6; j++) {
-			delta += gsl_matrix_get(trans_dash, i, j);
-		}
-		for(j=0; j<6; j++) {
-			gsl_matrix_set(trans_dash, i, j, gsl_matrix_get(trans_dash, i, j)/delta);
+			if(i != j) gsl_matrix_set(mcmc->trans_dash, i, j, gsl_matrix_get(mcmc->Q_dash, i, j)/var);
 		}
 	}
 }
 
-
-double mcmc_iteration(FILE *fp, gsl_rng* r, node_t **trees, gsl_vector *stabs, gsl_vector *stabs_dash, gsl_matrix *trans, gsl_matrix *trans_dash, double old_posterior, int multitree) {
-	double new_likelihood, new_prior, new_posterior, a, sample;
-	gsl_matrix *Q = gsl_matrix_alloc(6, 6);
-
-	build_q(Q, stabs, trans);
-	fprintf(fp, "Time to take a closer look...\n");
-	fprintf(fp, "Current Q:\n");
-	fprint_matrix(fp, Q);
-	fprintf(fp, "Current posterior: %e\n", old_posterior);
-
-	draw_proposal(fp, r, stabs, stabs_dash, trans, trans_dash);
-
-	fprintf(fp, "Proposed stabs:\n");
-	fprint_vector(fp, stabs_dash);
-	fprintf(fp, "Proposed trans:\n");
-	fprint_matrix(fp, trans_dash);
-	build_q(Q, stabs_dash, trans_dash);
-	fprintf(fp, "Proposed Q:\n");
-	fprint_matrix(fp, Q);
-
-	new_prior = log(get_prior(stabs_dash, trans_dash));
-	fprintf(fp, "Proposal prior is: %e\n", new_prior);
-	new_likelihood = get_model_loglh(fp, trees, Q, multitree);
-	fprintf(fp, "ACHTUNG I received: %e\n", new_likelihood);
-	fprintf(fp, "Proposal loglh is: %e\n", new_likelihood);
-	new_posterior = new_prior + new_likelihood;
-	fprintf(fp, "Proposal posterior: %e\n", new_posterior);
-
-	if(new_likelihood == 0.0) {
-		fprintf(fp, "Exactly zero likelihood!\n");
-		fprintf(fp, "This could be a problem...\n");
-	}
-	a = exp(new_posterior - old_posterior);
-	if(a<0) {
+void handle_acceptance_probability(double *a) {
+	if(*a<0) {
 		fprintf(stderr, "Acceptance probability is negative!\n");
 		fprintf(stderr, "Dying now.\n");
 		exit(7);
 	}
-	if(isnan(a)) {
+	if(isnan(*a)) {
 		fprintf(stderr, "Acceptance probability is NAN!\n");
 		fprintf(stderr, "Dying now.\n");
 		exit(8);
 	}
-	if(isinf(a)) {
+	if(isinf(*a)) {
 		fprintf(stderr, "Acceptance probability is infinite!\n");
 		fprintf(stderr, "Dodgily accepting!\n");
-		a = 1.1;
+		*a = 1.1;
 	}
+}
 
+void mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, int multitree) {
+	double new_log_prior, new_log_lh, new_log_poster, a, sample;
+
+	build_q(mcmc);
+	fprintf(fp, "Time to take a closer look...\n");
+	fprintf(fp, "Current Q:\n");
+	fprint_matrix(fp, mcmc->Q);
+	fprintf(fp, "Current posterior: %e\n", mcmc->log_poster);
+
+	draw_proposal(mcmc);
+
+	fprintf(fp, "Proposed stabs:\n");
+	fprint_vector(fp, mcmc->stabs_dash);
+	fprintf(fp, "Proposed trans:\n");
+	fprint_matrix(fp, mcmc->trans_dash);
+	build_q_dash(mcmc);
+	fprintf(fp, "Proposed Q:\n");
+	fprint_matrix(fp, mcmc->Q_dash);
+
+	new_log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
+	new_log_lh = get_model_loglh(trees, mcmc->Q_dash, multitree);
+	new_log_poster = new_log_prior + new_log_lh;
+
+	// Acceptance probability
+	a = exp(new_log_poster - mcmc->log_poster);
+	handle_acceptance_probability(&a);
 	fprintf(fp, "Acceptance probability is: %f\n", a);
 	if(a >= 1) {
-		fprintf(fp, "MCMC decision: accept\n");
-		fprintf(fp, "Posterior probability of last accepted transition: %e\n", new_posterior);
-		vector_copy(stabs_dash, stabs);
-		matrix_copy(trans_dash, trans);
-		return new_posterior;
-	}
-	sample = gsl_rng_uniform(r);
-	if(sample <= a) {
-		fprintf(fp, "MCMC decision: accept\n");
-		vector_copy(stabs_dash, stabs);
-		matrix_copy(trans_dash, trans);
-		return new_posterior;
+		// Accept
+		vector_copy(mcmc->stabs_dash, mcmc->stabs);
+		matrix_copy(mcmc->trans_dash, mcmc->trans);
+		mcmc->log_prior = new_log_prior;
+		mcmc->log_lh = new_log_lh;
+		mcmc->log_poster = new_log_poster;
 	} else {
-		fprintf(fp, "MCMC decision: reject\n");
-		return old_posterior;
-	}
-
-}
-
-void record_sample(node_t **root, gsl_vector **ancestral_sum, gsl_vector *stabs, gsl_matrix *trans, gsl_vector *stabs_sum, gsl_matrix *trans_sum, int multitree) {
-	int i, j;
-	for(i=0; i<6; i++) {
-		gsl_vector_set(ancestral_sum[0], i, gsl_vector_get(ancestral_sum[0], i) + root[0]->dist[i]);
-		if(multitree) {
-			for(j=1; j<6; j++) {
-				gsl_vector_set(ancestral_sum[j], i, gsl_vector_get(ancestral_sum[j], i) + root[j]->dist[i]);
-			}
-		}
-		gsl_vector_set(stabs_sum, i, gsl_vector_get(stabs_sum, i) + gsl_vector_get(stabs, i));
-		for(j=0; j<6; j++) {
-			gsl_matrix_set(trans_sum, i, j, gsl_matrix_get(trans_sum, i, j) + gsl_matrix_get(trans, i, j));
+		sample = gsl_rng_uniform(mcmc->r);
+		if(sample <= a) {
+			vector_copy(mcmc->stabs_dash, mcmc->stabs);
+			matrix_copy(mcmc->trans_dash, mcmc->trans);
 		}
 	}
-}
 
-void normalise_samples(gsl_vector **ancestral_sum, gsl_vector *stabs_sum, gsl_matrix *trans_sum, int samples, int multitree) {
-	int i, j;
-	for(i=0; i<6; i++) {
-		gsl_vector_set(ancestral_sum[0], i, gsl_vector_get(ancestral_sum[0], i) / samples);
-		if(multitree) for(j=1; j<6; j++) gsl_vector_set(ancestral_sum[j], i, gsl_vector_get(ancestral_sum[j], i) / samples);
-		gsl_vector_set(stabs_sum, i, gsl_vector_get(stabs_sum, i) / samples);
-		for(j=0; j<6; j++) gsl_matrix_set(trans_sum, i, j, gsl_matrix_get(trans_sum, i, j) / samples);
-	}
 }
