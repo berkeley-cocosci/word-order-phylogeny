@@ -72,14 +72,13 @@ void realify_vector(gsl_vector_complex *complex, gsl_vector *real) {
 }
 
 void realify_matrix(gsl_matrix_complex *complex, gsl_matrix *real) {
-	int i, j;
+	int i;
+	gsl_vector_complex *complex_row = gsl_vector_complex_alloc(6);
+	gsl_vector real_row;
 	for(i=0; i<6; i++) {
-		for(j=0; j<6; j++) {
-			if(GSL_IMAG(gsl_matrix_complex_get(complex, i, j)) != 0) {
-//				printf("Shit!  Discarding imaginary stuff!");
-			}
-			gsl_matrix_set(real, i, j, GSL_REAL(gsl_matrix_complex_get(complex, i, j)));
-		}
+		gsl_matrix_complex_get_row(complex_row, complex, i);
+		real_row = gsl_vector_complex_real(complex_row).vector;
+		gsl_matrix_set_row(real, i, &real_row);
 	}
 }
 
