@@ -130,6 +130,9 @@ int main(int argc, char **argv) {
 		/* Draw samples for this tree (set) */
 		compute_probabilities(&mcmc, trees, multitree);
 		handle_treeset(logfp, &mcmc, trees, &sm, burnin, samples, lag, multitree);
+		/* Free up tree memory */
+		free(trees[0]);
+		if(multitree) for(i=1; i<6; i++) free(trees[i]);
 	}
 
 	// Finish up

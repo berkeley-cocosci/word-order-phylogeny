@@ -56,6 +56,7 @@ double get_model_loglh(node_t **trees, gsl_matrix *Q, int multitree) {
 	gsl_vector_complex_free(evals);
 	gsl_matrix_complex_free(evecs);
 	gsl_matrix_complex_free(evecs_inv);
+	gsl_matrix_free(P);
 	return likelihood;
 }
 

@@ -80,6 +80,8 @@ void realify_matrix(gsl_matrix_complex *complex, gsl_matrix *real) {
 		real_row = gsl_vector_complex_real(complex_row).vector;
 		gsl_matrix_set_row(real, i, &real_row);
 	}
+	gsl_vector_complex_free(complex_row);
+	gsl_vector_free(&real_row);
 }
 
 void invert(gsl_matrix_complex *in, gsl_matrix_complex *out, gsl_permutation *p, int *signum) {
@@ -149,6 +151,7 @@ void decompose_q(gsl_matrix *Q, gsl_vector_complex *evals, gsl_matrix_complex *e
 
 	gsl_matrix_free(Q_copy);
 	gsl_matrix_complex_free(evecs_copy);
+	gsl_permutation_free(p);
 /*
 	fp = fopen("eigendecomp.txt", "w");
 	fprintf(fp, "Here's Q:\n");
@@ -238,4 +241,14 @@ void stationary_dist(gsl_matrix *Q, gsl_vector *stationary) {
 	printf("Norm: %f\n", norm);
 	gsl_blas_dscal(1.0/norm, stationary);
 	fprint_vector(stdout, stationary);
+
+	gsl_matrix_free(D);
+	gsl_matrix_complex_free(D_bullshit);
+	gsl_matrix_complex_free(D_inv);
+	gsl_matrix_free(S);
+	gsl_matrix_free(realevecs);
+	gsl_matrix_complex_free(evecs);
+	gsl_matrix_complex_free(evecs_inv);
+	gsl_vector_complex_free(evals);
+	gsl_vector_free(phi);
 }
