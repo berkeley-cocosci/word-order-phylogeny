@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
 	treefile = NULL;
 	leaffile = NULL;
 	outdir = ".";
-	while((c = getopt(argc, argv, "b:c:i:l:ms:t:o:L")) != -1) {
+	while((c = getopt(argc, argv, "b:c:i:l:ms:t:o:Lx:")) != -1) {
 		switch(c) {
 			case 'b':
 				burnin = atoi(optarg);
@@ -95,6 +95,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'L':
 				logging = 1;
+				break;
+			case 'x':
+				lag = atoi(optarg);
 				break;
 		}
 	}
