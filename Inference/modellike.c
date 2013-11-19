@@ -12,11 +12,12 @@
 #include<gsl/gsl_vector_complex.h>
 
 #include "beliefprop.h"
+#include "gslworkspace.h"
 #include "matrix.h"
 #include "tree.h"
 
-void compute_likelihood(node_t *node, double *likelihood, gsl_vector_complex *evals, gsl_matrix_complex *evecs, gsl_matrix_complex *evecs_inv, gsl_matrix *P);
-double get_model_loglh(node_t **trees, gsl_matrix *Q, int multitree);
+void compute_likelihood(node_t *node, double *likelihood, gslws_t *ws);
+double get_model_loglh(node_t **trees, gsl_matrix *Q, gslws_t *ws, int multitree);
 
 double get_log_prior(gsl_vector *stabs, gsl_matrix *trans) {
 	double log_prior = 0;
@@ -27,19 +28,13 @@ double get_log_prior(gsl_vector *stabs, gsl_matrix *trans) {
 	return log_prior;
 }
 
-double get_model_loglh(node_t **trees, gsl_matrix *Q, int multitree) {
-
-
+double get_model_loglh(node_t **trees, gsl_matrix *Q, gslws_t *ws, int multitree) {
 	int i, j;
 	double likelihood;
 	node_t *root;
-	gsl_vector_complex *evals = gsl_vector_complex_alloc(6);
-        gsl_matrix_complex *evecs = gsl_matrix_complex_alloc(6,6);
-        gsl_matrix_complex *evecs_inv = gsl_matrix_complex_alloc(6,6);
-        gsl_matrix *P = gsl_matrix_alloc(6,6);
 
 	// Compute eigen-things of Q
-	decompose_q(Q, evals, evecs, evecs_inv);
+	decompose_q(Q, ws);
 
 	for(i=0; i<6; i++) {
 		if(i>0 && multitree==0) break;
@@ -51,22 +46,19 @@ double get_model_loglh(node_t **trees, gsl_matrix *Q, int multitree) {
 			root->dist[j] = 1.0/6.0;
 		}
 
-		compute_likelihood(root, &likelihood, evals, evecs, evecs_inv, P);
+		compute_likelihood(root, &likelihood, ws);
 	}
-	gsl_vector_complex_free(evals);
-	gsl_matrix_complex_free(evecs);
-	gsl_matrix_complex_free(evecs_inv);
-	gsl_matrix_free(P);
 	return likelihood;
 }
 
-void compute_likelihood(node_t *node, double *likelihood, gsl_vector_complex *evals, gsl_matrix_complex *evecs, gsl_matrix_complex *evecs_inv, gsl_matrix *P) {
+void compute_likelihood(node_t *node, double *likelihood, gslws_t *ws) {
 	int i, j;
 	double nodelikelihood = 0;
 	if(node->left_child == NULL && node->right_child == NULL) {
 		for(i=0; i<6; i++) {
 			nodelikelihood += node->dist[i]*node->l_message[i];
 		}
+		/*
 		if(nodelikelihood < 0 && nodelikelihood < 1e-15) {
 			// If nodelikelihood is a very negative number, it's most likely supposed to be zero
 			// That's bad because we can't return log(0)
@@ -92,6 +84,8 @@ void compute_likelihood(node_t *node, double *likelihood, gsl_vector_complex *ev
 			fprintf(stderr, "Dying now.\n");
 			exit(6);
 		}
+		*/
+		
 		*likelihood += log(nodelikelihood);
 	} else {
 		/* We're not a leaf!
@@ -99,27 +93,27 @@ void compute_likelihood(node_t *node, double *likelihood, gsl_vector_complex *ev
 		*/
 
 		// LEFT SIDE
-		compute_p(evals, evecs, evecs_inv, node->left_branch, P);
+		compute_p(ws, node->left_branch);
 		memset(node->left_child->dist, 0, 6*sizeof(double));
 		for(i=0; i<6; i++) {
 			// Assume I am i
 			for(j=0; j<6; j++) {
 				// Adjust my child's probability of being j
-				node->left_child->dist[j] += node->dist[i] * gsl_matrix_get(P, i, j);
+				node->left_child->dist[j] += node->dist[i] * gsl_matrix_get(ws->P, i, j);
 			}
 		}
-		compute_likelihood(node->left_child, likelihood, evals, evecs, evecs_inv, P);
+		compute_likelihood(node->left_child, likelihood, ws);
 		// RIGHT SIDE
-		compute_p(evals, evecs, evecs_inv, node->right_branch, P);
+		compute_p(ws, node->right_branch);
 		memset(node->right_child->dist, 0, 6*sizeof(double));
 		for(i=0; i<6; i++) {
 			// Assume I am i
 			for(j=0; j<6; j++) {
 				// Adjust my child's probability of being j
-				node->right_child->dist[j] += node->dist[i] * gsl_matrix_get(P, i, j);
+				node->right_child->dist[j] += node->dist[i] * gsl_matrix_get(ws->P, i, j);
 			}
 		}
-		compute_likelihood(node->right_child, likelihood, evals, evecs, evecs_inv, P);
+		compute_likelihood(node->right_child, likelihood, ws);
 	}
 }
 

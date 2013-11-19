@@ -8,6 +8,7 @@
 #include<gsl/gsl_vector.h>
 #include<gsl/gsl_vector_complex.h>
 
+#include "gslworkspace.h"
 #include "tree.h"
 #include "matrix.h"
 #include "mcmc.h"
@@ -15,25 +16,25 @@
 #include "beliefprop.h"
 #include "sampman.h"
 
-void handle_treeset(FILE *logfp, mcmc_t *mcmc, node_t **trees, sampman_t *sm, int burnin, int samples, int lag, int multitree) {
+void handle_treeset(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t *ws, sampman_t *sm, int burnin, int samples, int lag, int multitree) {
 	int i, j;
 	/* Burn in */
-	for(i=0; i<burnin; i++) mcmc_iteration(logfp, mcmc, trees, multitree);
+	for(i=0; i<burnin; i++) mcmc_iteration(logfp, mcmc, trees, ws, multitree);
 	/* Take samples */
 	for(i=0; i<samples; i++) {
 		if(gsl_rng_uniform_int(mcmc->r, 10000) >= 9999) {
 			/* Random restart! */
 			random_restart(mcmc);
-			compute_probabilities(mcmc, trees, multitree);
-			for(i=0; i<burnin; i++) mcmc_iteration(logfp, mcmc, trees, multitree);
+			compute_probabilities(mcmc, trees, ws, multitree);
+			for(i=0; i<burnin; i++) mcmc_iteration(logfp, mcmc, trees, ws, multitree);
 		}
 
 		for(j=0; j<lag; j++) {
-			mcmc_iteration(logfp, mcmc, trees, multitree);
+			mcmc_iteration(logfp, mcmc, trees, ws, multitree);
 		}
 
 		build_q(mcmc);
-		upwards_belprop(logfp, trees, mcmc->Q, multitree);
+		upwards_belprop(logfp, trees, mcmc->Q, ws, multitree);
 
 		/* Record sample */
 		process_sample(sm, mcmc, trees);
@@ -53,6 +54,7 @@ int main(int argc, char **argv) {
 	int burnin, lag, samples;
 	node_t **trees = calloc(sizeof(node_t*), 6);
 	mcmc_t mcmc;
+	gslws_t ws;
 	sampman_t sm;
 
 
@@ -111,6 +113,7 @@ int main(int argc, char **argv) {
 
 	initialise_sampman(&sm, outdir);
 	initialise_mcmc(&mcmc);
+	alloc_gslws(&ws);
 
 	// Loop over trees...
 	for(treeindex=0; treeindex<5; treeindex++) {
@@ -128,8 +131,8 @@ int main(int argc, char **argv) {
 		}
 
 		/* Draw samples for this tree (set) */
-		compute_probabilities(&mcmc, trees, multitree);
-		handle_treeset(logfp, &mcmc, trees, &sm, burnin, samples, lag, multitree);
+		compute_probabilities(&mcmc, trees, &ws, multitree);
+		handle_treeset(logfp, &mcmc, trees, &ws, &sm, burnin, samples, lag, multitree);
 		/* Free up tree memory */
 		free(trees[0]);
 		if(multitree) for(i=1; i<6; i++) free(trees[i]);

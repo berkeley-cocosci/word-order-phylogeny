@@ -94,7 +94,7 @@ void get_ready_nodes(node_t *root, node_t ***firstready, int *nodecount) {
 	if(root->right_child != NULL) get_ready_nodes(root->right_child, firstready, nodecount);
 }
 
-void pass_up(FILE *fp, node_t *node, gsl_vector_complex *evals, gsl_matrix_complex *evecs, gsl_matrix_complex *evecs_inv, gsl_matrix *P) {
+void pass_up(FILE *fp, node_t *node, gslws_t *ws) {
 	int i, j;
 	double norm;
 	if(node->parent == NULL) {
@@ -130,11 +130,11 @@ void pass_up(FILE *fp, node_t *node, gsl_vector_complex *evals, gsl_matrix_compl
 	}
 
 	if(node->parent->left_child == node) {
-		compute_p(evals, evecs, evecs_inv, node->parent->left_branch, P);
+		compute_p(ws, node->parent->left_branch);
 		for(i=0; i<6; i++) {
 			node->parent->l_message[i] = 0;
 			for(j=0; j<6; j++) {
-				node->parent->l_message[i] += node->dist[j]*gsl_matrix_get(P, i, j);
+				node->parent->l_message[i] += node->dist[j]*gsl_matrix_get(ws->P, i, j);
 			}
 		}
 		norm = 0;
@@ -158,11 +158,11 @@ void pass_up(FILE *fp, node_t *node, gsl_vector_complex *evals, gsl_matrix_compl
 
 		node->parent->got_left = 1;
 	} else {
-		compute_p(evals, evecs, evecs_inv, node->parent->right_branch, P);
+		compute_p(ws, node->parent->right_branch);
 		for(i=0; i<6; i++) {
 			node->parent->r_message[i] = 0;
 			for(j=0; j<6; j++) {
-				node->parent->r_message[i] += node->dist[j]*gsl_matrix_get(P, i, j);
+				node->parent->r_message[i] += node->dist[j]*gsl_matrix_get(ws->P, i, j);
 			}
 		}
 		norm = 0;
@@ -179,7 +179,7 @@ void pass_up(FILE *fp, node_t *node, gsl_vector_complex *evals, gsl_matrix_compl
 	node->has_passed = 1;
 }
 
-void pass_down(FILE *fp, node_t *node, gsl_vector_complex *evals, gsl_matrix_complex *evecs, gsl_matrix_complex *evecs_inv, gsl_matrix *P) {
+void pass_down(FILE *fp, node_t *node, gslws_t *ws) {
 	int i, j;
 	double norm;
 	/* Update my dist by incorporating my parent's message */
@@ -204,14 +204,14 @@ void pass_down(FILE *fp, node_t *node, gsl_vector_complex *evals, gsl_matrix_com
 	//fprintf(fp, "BELPROP: Here's my final dist: [%f, %f, %f, %f, %f, %f]\n", node->dist[0], node->dist[1], node->dist[2], node->dist[3], node->dist[4], node->dist[5]);
 	if(node->left_child != NULL) {
 		/* Compute the transition matrix to my left child */
-		compute_p(evals, evecs, evecs_inv, node->left_branch, P);
+		compute_p(ws, node->left_branch);
 		/* Compute my normalised pass down message, reusing my r_message space */
 		norm = 0;
 		for(i=0; i<6; i++) {
 			node->r_message[i] = 0;
 			for(j=0; j<6; j++) {
-				node->r_message[i] += node->dist[j]*gsl_matrix_get(P, j, i);
-			}
+				node->r_message[i] += node->dist[j]*gsl_matrix_get(ws->P, j, i);
+		}
 			norm += node->r_message[i];
 		}
 		for(i=0; i<6; i++) {
@@ -219,16 +219,16 @@ void pass_down(FILE *fp, node_t *node, gsl_vector_complex *evals, gsl_matrix_com
 			node->left_child->p_message[i] = node->r_message[i];
 		}
 		//fprintf(fp, "BELPROP: Here's what I passed down: [%f, %f, %f, %f, %f, %f]\n", node->r_message[0], node->r_message[1], node->r_message[2], node->r_message[3], node->r_message[4], node->r_message[5]);
-		pass_down(fp, node->left_child, evals, evecs, evecs_inv, P);
+		pass_down(fp, node->left_child, ws);
 	}
 	if(node->right_child != NULL) {
-		compute_p(evals, evecs, evecs_inv, node->right_branch, P);
+		compute_p(ws, node->right_branch);
 		/* Compute my normalised pass down message, reusing my r_message space */
 		norm = 0;
 		for(i=0; i<6; i++) {
 			node->r_message[i] = 0;
 			for(j=0; j<6; j++) {
-				node->r_message[i] += node->dist[j]*gsl_matrix_get(P, j, i);
+				node->r_message[i] += node->dist[j]*gsl_matrix_get(ws->P, j, i);
 			}
 			norm += node->r_message[i];
 		}
@@ -237,7 +237,7 @@ void pass_down(FILE *fp, node_t *node, gsl_vector_complex *evals, gsl_matrix_com
 			node->right_child->p_message[i] = node->r_message[i];
 		}
 		//fprintf(fp, "BELPROP: Here's what I passed down: [%f, %f, %f, %f, %f, %f]\n", node->r_message[0], node->r_message[1], node->r_message[2], node->r_message[3], node->r_message[4], node->r_message[5]);
-		pass_down(fp, node->right_child, evals, evecs, evecs_inv, P);
+		pass_down(fp, node->right_child, ws);
 	}
 }
 
@@ -309,7 +309,7 @@ void dist_printer(FILE *fp, node_t *node) {
 	}
 }
 
-long double get_tree_likelihood(FILE *fp, node_t *node, int value, gsl_vector_complex *evals, gsl_matrix_complex *evecs, gsl_matrix_complex *evecs_inv, gsl_matrix *P) {
+long double get_tree_likelihood(FILE *fp, node_t *node, int value, gslws_t *ws) {
 	long double likelihood;
 	long double a, b, c, d;
 	int i, j;
@@ -356,18 +356,18 @@ long double get_tree_likelihood(FILE *fp, node_t *node, int value, gsl_vector_co
 	} else {
 		if(node->left_child == NULL) printf("Holy crap!  Missing left child!\n");
 		if(node->right_child == NULL) printf("Holy crap!  Missing right child!\n");
-		compute_p(evals, evecs, evecs_inv, node->left_branch, P);
+		compute_p(ws, node->left_branch);
 		for(i=0; i<6; i++) {
-			node->left_child->dist[i] = gsl_matrix_get(P, value, i);
+			node->left_child->dist[i] = gsl_matrix_get(ws->P, value, i);
 			if(node->left_child->dist[i] == 0.0) {
 				fprintf(fp, "I got a left child dist value of zero for word order %d from node %p with word order %d\n.", i, node, value);
 				fprintf(fp, "Dying now.\n");
 				exit(666);
 			}
 		}
-		compute_p(evals, evecs, evecs_inv, node->right_branch, P);
+		compute_p(ws, node->right_branch);
 		for(i=0; i<6; i++) {
-			node->right_child->dist[i] = gsl_matrix_get(P, value, i);
+			node->right_child->dist[i] = gsl_matrix_get(ws->P, value, i);
 			if(node->right_child->dist[i] == 0.0) {
 				fprintf(fp, "I got a right child dist value of zero for word order %d from node %p with word order %d\n.", i, node, value);
 				fprintf(fp, "Dying now.\n");
@@ -378,7 +378,7 @@ long double get_tree_likelihood(FILE *fp, node_t *node, int value, gsl_vector_co
 		for(i=0; i<6; i++) {
 			for(j=0; j<6; j++) {
 				a = node->left_child->dist[i];
-				b = get_tree_likelihood(fp, node->left_child, i, evals, evecs, evecs_inv, P);
+				b = get_tree_likelihood(fp, node->left_child, i, ws);
 /*				if(b == 0.0) {
 					fprintf(fp, "I got a left subtree likelihood of zero for word order %d from node %p with word order %d\n.", i, node, value);
 					fprintf(fp, "Dying now.\n");
@@ -386,7 +386,7 @@ long double get_tree_likelihood(FILE *fp, node_t *node, int value, gsl_vector_co
 				}
 */
 				c = node->right_child->dist[j];
-				d = get_tree_likelihood(fp, node->right_child, j, evals, evecs, evecs_inv, P);
+				d = get_tree_likelihood(fp, node->right_child, j, ws);
 /*
 				if(d == 0.0) {
 					fprintf(fp, "I got a right subtree likelihood of zero for word order %d from node %p with word order %d\n.", j, node, value);
@@ -448,7 +448,7 @@ void find_likely_interiors(FILE *fp, node_t *node) {
 	if(node->right_child != NULL) find_likely_interiors(fp, node->right_child);
 }
 
-void upwards_belprop(FILE *fp, node_t **trees, gsl_matrix *Q, int multitree) {
+void upwards_belprop(FILE *fp, node_t **trees, gsl_matrix *Q, gslws_t *ws, int multitree) {
 	node_t **listhead;
 	node_t *root;
 	int listsize = 0;
@@ -456,24 +456,19 @@ void upwards_belprop(FILE *fp, node_t **trees, gsl_matrix *Q, int multitree) {
 	listhead = NULL;
 	double norm;
 
-	gsl_vector_complex *evals = gsl_vector_complex_alloc(6);
-	gsl_matrix_complex *evecs = gsl_matrix_complex_alloc(6,6);
-	gsl_matrix_complex *evecs_inv = gsl_matrix_complex_alloc(6,6);
-	gsl_matrix *P = gsl_matrix_alloc(6,6);
-
 	for(treeindex=0; treeindex<6; treeindex++) {
 		if(treeindex>0 && multitree==0) break;
 
 		root = trees[treeindex];
 		reset_tree(root);
 
-		decompose_q(Q, evals, evecs, evecs_inv);
+		decompose_q(Q, ws);
 
 		get_ready_nodes(root, &listhead, &listsize);
 		while(listsize != 0) {
 			fprintf(fp, "Found %d ready nodes!\n", listsize);
 			for(i=0; i<listsize; i++) {
-				pass_up(fp, listhead[i], evals, evecs, evecs_inv, P);
+				pass_up(fp, listhead[i], ws);
 			}
 			mark_ready_nodes(fp, root);
 			listsize = 0;
@@ -495,10 +490,5 @@ void upwards_belprop(FILE *fp, node_t **trees, gsl_matrix *Q, int multitree) {
 			root->dist[i] /= norm;
 		}
 	}
-
-	gsl_vector_complex_free(evals);
-	gsl_matrix_complex_free(evecs);
-	gsl_matrix_complex_free(evecs_inv);
-	gsl_matrix_free(P);
 
 }

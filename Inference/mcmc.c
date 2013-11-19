@@ -13,6 +13,7 @@
 #include<gsl/gsl_permutation.h>
 #include<math.h>
 
+#include "gslworkspace.h"
 #include "tree.h"
 #include "matrix.h"
 #include "mcmc.h"
@@ -45,9 +46,9 @@ void initialise_mcmc(mcmc_t *mcmc) {
 	build_q(mcmc);
 }
 
-void compute_probabilities(mcmc_t *mcmc, node_t **trees, int multitree) {
+void compute_probabilities(mcmc_t *mcmc, node_t **trees, gslws_t *ws, int multitree) {
 	mcmc->log_prior = get_log_prior(mcmc->stabs, mcmc->trans);
-	mcmc->log_lh = get_model_loglh(trees, mcmc->Q, multitree);
+	mcmc->log_lh = get_model_loglh(trees, mcmc->Q, ws, multitree);
 	mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
 }
 
@@ -216,7 +217,7 @@ void handle_acceptance_probability(double *a) {
 	}
 }
 
-void mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, int multitree) {
+void mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, gslws_t *ws, int multitree) {
 	double new_log_prior, new_log_lh, new_log_poster, a, sample;
 
 	build_q(mcmc);
@@ -236,7 +237,7 @@ void mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, int multitree) {
 	fprint_matrix(fp, mcmc->Q_dash);
 
 	new_log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
-	new_log_lh = get_model_loglh(trees, mcmc->Q_dash, multitree);
+	new_log_lh = get_model_loglh(trees, mcmc->Q_dash, ws, multitree);
 	new_log_poster = new_log_prior + new_log_lh;
 
 	// Acceptance probability
@@ -245,16 +246,16 @@ void mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, int multitree) {
 	fprintf(fp, "Acceptance probability is: %f\n", a);
 	if(a >= 1) {
 		// Accept
-		vector_copy(mcmc->stabs_dash, mcmc->stabs);
-		matrix_copy(mcmc->trans_dash, mcmc->trans);
+		gsl_vector_memcpy(mcmc->stabs, mcmc->stabs_dash);
+		gsl_matrix_memcpy(mcmc->trans, mcmc->trans_dash);
 		mcmc->log_prior = new_log_prior;
 		mcmc->log_lh = new_log_lh;
 		mcmc->log_poster = new_log_poster;
 	} else {
 		sample = gsl_rng_uniform(mcmc->r);
 		if(sample <= a) {
-			vector_copy(mcmc->stabs_dash, mcmc->stabs);
-			matrix_copy(mcmc->trans_dash, mcmc->trans);
+			gsl_vector_memcpy(mcmc->stabs, mcmc->stabs_dash);
+			gsl_matrix_memcpy(mcmc->trans, mcmc->trans_dash);
 		}
 	}
 

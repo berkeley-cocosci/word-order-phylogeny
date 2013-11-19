@@ -13,6 +13,8 @@
 #include<gsl/gsl_vector.h>
 #include<gsl/gsl_vector_complex.h>
 
+#include "gslworkspace.h"
+
 void fprint_vector(FILE *fp, gsl_vector *v) {
         int i;
         for(i=0; i<5; i++) {
@@ -31,31 +33,6 @@ void fprint_matrix(FILE *fp, gsl_matrix *m) {
         }
 }
 
-void vector_copy(gsl_vector *in, gsl_vector *out) {
-        int i;
-        for(i=0; i<6; i++) {
-                gsl_vector_set(out, i, gsl_vector_get(in, i));
-        }
-}
-
-int matrix_compare(gsl_matrix *a, gsl_matrix *b) {
-        int i, j;
-        for(i=0; i<6; i++) {
-                for(j=0; j<6; j++) {
-			if(gsl_matrix_get(a, i, j) != gsl_matrix_get(b, i, j)) return 0;
-		}
-	}
-	return 1;
-}
-
-void matrix_copy(gsl_matrix *in, gsl_matrix *out) {
-        int i, j;
-        for(i=0; i<6; i++) {
-                for(j=0; j<6; j++) {
-                        gsl_matrix_set(out, i, j, gsl_matrix_get(in, i, j));
-                }
-        }
-}
 void initialise_q(gsl_matrix *Q, double q) {
 	int i;
 	gsl_matrix_set_all(Q, q);
@@ -81,7 +58,6 @@ void realify_matrix(gsl_matrix_complex *complex, gsl_matrix *real) {
 		gsl_matrix_set_row(real, i, &real_row);
 	}
 	gsl_vector_complex_free(complex_row);
-	gsl_vector_free(&real_row);
 }
 
 void invert(gsl_matrix_complex *in, gsl_matrix_complex *out, gsl_permutation *p, int *signum) {
@@ -92,66 +68,49 @@ void invert(gsl_matrix_complex *in, gsl_matrix_complex *out, gsl_permutation *p,
 
 }
 
-void eigensolve(gsl_matrix *Q, gsl_vector_complex *evals, gsl_matrix_complex *evecs) {
-	gsl_eigen_nonsymmv_workspace *ws = gsl_eigen_nonsymmv_alloc(6);
-	gsl_eigen_nonsymmv(Q, evals, evecs, ws);
-	gsl_eigen_nonsymmv_free(ws);
+void eigensolve(gsl_matrix *Q, gslws_t *ws) {
+	gsl_eigen_nonsymmv(Q, ws->evals, ws->evecs, ws->eigenws);
 }
 
-void compute_p(gsl_vector_complex *evals, gsl_matrix_complex *evecs, gsl_matrix_complex *evecs_inv, double t, gsl_matrix *out) {
+void compute_p(gslws_t *ws, double t) {
 	int i;
-	gsl_matrix_complex *c_P = gsl_matrix_complex_alloc(6,6);
-	gsl_matrix_complex *temp1 = gsl_matrix_complex_alloc(6,6);
-	gsl_matrix_complex *temp2 = gsl_matrix_complex_alloc(6,6);
-	gsl_matrix_complex_set_zero(temp1);
-	gsl_matrix_complex_set_zero(temp2);
+	gsl_matrix_complex_set_zero(ws->temp1);
+	gsl_matrix_complex_set_zero(ws->temp2);
 	gsl_complex one, zero, z;
 	GSL_SET_COMPLEX(&one, 1.0, 0.0);
 	GSL_SET_COMPLEX(&zero, 0.0, 0.0);
 	/* Fill temp1 with e^(t\lbamda_i) */
 	for(i=0; i<6; i++) {
-		z = gsl_complex_mul_real(gsl_vector_complex_get(evals, i), t);
-		gsl_matrix_complex_set(temp1, i, i, gsl_complex_exp(z));
+		z = gsl_complex_mul_real(gsl_vector_complex_get(ws->evals, i), t);
+		gsl_matrix_complex_set(ws->temp1, i, i, gsl_complex_exp(z));
 	}
-	gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, one, evecs, temp1, zero, temp2);
+	gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, one, ws->evecs, ws->temp1, zero, ws->temp2);
 	/* Store temp2*evecs_inv in out */
-	gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, one, temp2, evecs_inv, zero, c_P);
-	realify_matrix(c_P, out);
+	gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, one, ws->temp2, ws->evecs_inv, zero, ws->c_P);
+	realify_matrix(ws->c_P, ws->P);
 	//print_matrix(out);
 //	printf("---\n");
-
-	gsl_matrix_complex_free(c_P);
-	gsl_matrix_complex_free(temp1);
-	gsl_matrix_complex_free(temp2);
 }
 
-void decompose_q(gsl_matrix *Q, gsl_vector_complex *evals, gsl_matrix_complex *evecs, gsl_matrix_complex *evecs_inv) {
-	gsl_matrix *Q_copy = gsl_matrix_alloc(6,6);
-	gsl_matrix_complex *evecs_copy = gsl_matrix_complex_alloc(6,6);
-	gsl_permutation *p = gsl_permutation_alloc(6);
+void decompose_q(gsl_matrix *Q, gslws_t *ws) {
 	int signum;
 	int i,j;
 
 	/* Make a copy of Q to give to the (destructive) eigensolver */
-	matrix_copy(Q, Q_copy);
+	gsl_matrix_memcpy(ws->Q_copy, Q);
 
-	eigensolve(Q_copy, evals, evecs);
-	//realify_vector(c_evals, evals);
-	//realify_matrix(c_evecs, evecs);
+	eigensolve(ws->Q_copy, ws);
 
 	/* Make a copy of the eigenvectors to give to the (destructive) inverter */
 	for(i=0; i<6; i++) {
 		for(j=0; j<6; j++) {
-			gsl_matrix_complex_set(evecs_copy, i, j, gsl_matrix_complex_get(evecs, i, j));
+			gsl_matrix_complex_set(ws->evecs_copy, i, j, gsl_matrix_complex_get(ws->evecs, i, j));
 		}
 	}
 	
 	/* Compute inverse eigenvector matrix */
-	invert(evecs_copy, evecs_inv, p, &signum);
+	invert(ws->evecs_copy, ws->evecs_inv, ws->perm, &signum);
 
-	gsl_matrix_free(Q_copy);
-	gsl_matrix_complex_free(evecs_copy);
-	gsl_permutation_free(p);
 /*
 	fp = fopen("eigendecomp.txt", "w");
 	fprintf(fp, "Here's Q:\n");
@@ -166,7 +125,7 @@ void decompose_q(gsl_matrix *Q, gsl_vector_complex *evals, gsl_matrix_complex *e
 */
 }
 
-void stationary_dist(gsl_matrix *Q, gsl_vector *stationary) {
+void stationary_dist(gsl_matrix *Q, gsl_vector *stationary, gslws_t *ws) {
 	gsl_matrix *D = gsl_matrix_alloc(6,6);
 	gsl_matrix_complex *D_bullshit = gsl_matrix_complex_alloc(6,6);
 	gsl_matrix_complex *D_inv = gsl_matrix_complex_alloc(6,6);
@@ -204,7 +163,7 @@ void stationary_dist(gsl_matrix *Q, gsl_vector *stationary) {
 	fprint_matrix(stdout, S);
 	printf("----------\n");
 	gsl_matrix_transpose(S);
-	decompose_q(S, evals, evecs, evecs_inv);
+	decompose_q(S, ws);
 	for(i=0; i<6; i++) {
 		for(j=0; j<6; j++) {
 			gsl_matrix_complex_set(evecs, i, j, gsl_complex_conjugate(gsl_matrix_complex_get(evecs, i, j)));
