@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gsl/gsl_rng.h>
 
 struct leafdata{
 	char *langname;
@@ -49,6 +50,6 @@ void print_out_tree(node_t *node);
 void double_branch_fixer(node_t *node);
 void verify_tree_goodness(node_t *node);
 void unknown_data_leafectomy(node_t *root);
-node_t *build_tree(char *treefile, char *leaffile);
+node_t *build_tree(char *treefile, char *leaffile, int shuffle_leaves, gsl_rng *r);
 
 #endif /* TREE_H */

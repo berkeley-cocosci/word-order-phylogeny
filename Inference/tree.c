@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
 struct leafdata{
 	char *langname;
@@ -70,6 +72,40 @@ leafdata_t* read_leaf_data(char* filename) {
 	}
 	fclose(fp);
 	return head;
+}
+
+void shuffle_leafdata(leafdata_t *head, gsl_rng *r) {
+	int i;
+	leafdata_t *node;
+	int leafcount;
+	int *wordorders;
+	/* Figure out length of list */
+	node = head;
+	leafcount = 0;
+	while(1) {
+		if(node->next == NULL) {
+			break;
+		} else {
+			leafcount++;
+			node = node->next;
+		}
+	}
+	/* Allocate array for word orders */
+	wordorders = calloc(leafcount, sizeof(int));
+	/* Populate array */
+	node = head;
+	for(i=0; i<leafcount; i++) { 
+		wordorders[i] = node->wordorder;
+		node = node-> next;
+	}
+	/* Shuffle array */
+	gsl_ran_shuffle(r, wordorders, leafcount, sizeof(int));
+	/* Change leaf word orders */
+	node = head;
+	for(i=0; i<leafcount; i++) { 
+		node->wordorder = wordorders[i];
+		node = node-> next;
+	}
 }
 
 uint8_t get_leaf_wordorder(leafdata_t* node, char* langname) {
@@ -383,12 +419,13 @@ void unknown_data_leafectomy(node_t *root) {
 	double_branch_fixer(root);
 }
 
-node_t *build_tree(char *treefile, char *leaffile) {
+node_t *build_tree(char *treefile, char *leaffile, int shuffle_leaves, gsl_rng *r) {
 	int i, j, k;
 	leafdata_t *leafdata;
 	node_t *nodes;
 	float maxlength;
 	leafdata = read_leaf_data(leaffile);
+	if(shuffle_leaves) shuffle_leafdata(leafdata, r);
 	i = get_node_count(treefile) + 1;
 	nodes = calloc(i, sizeof(node_t));
 	if(nodes == NULL) {

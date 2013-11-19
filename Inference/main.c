@@ -125,11 +125,11 @@ int main(int argc, char **argv) {
 			for(i=0; i<6; i++) {
 				sprintf(treefile, "../TreeBuilder/generated_trees/%s/%s/tree_%d.simple", types[treeclass], families[i], treeindex+1);
 				sprintf(leaffile, "../TreeBuilder/generated_trees/%s.leafdata", families[i]);
-				trees[i] = build_tree(treefile, leaffile);
+				trees[i] = build_tree(treefile, leaffile, 0, mcmc.r);
 				reset_tree(trees[i]);
 			}	
 		} else {
-			trees[0] = build_tree(treefile, leaffile);
+			trees[0] = build_tree(treefile, leaffile, 0, mcmc.r);
 			reset_tree(trees[0]);
 		}
 
