@@ -362,6 +362,7 @@ void unknown_data_leafectomy(node_t *root) {
 	/* First, delete links to nodes with unknown data */
 	while(1) {
 		perfection = 1;
+		leafcount = 0;
 		get_leaves(root, &listhead, &leafcount);
 		for(i=0; i<leafcount; i++) {
 			knowndata = 0;
@@ -375,7 +376,6 @@ void unknown_data_leafectomy(node_t *root) {
 				listhead[i]->parent = NULL;
 			}
 		}
-		leafcount = 0;
 		if(perfection) break;
 	}
 
