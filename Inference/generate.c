@@ -10,31 +10,24 @@
 #include<gsl/gsl_vector.h>
 #include<gsl/gsl_vector_complex.h>
 
-#include "wordorders.h"
-#include "tree.h"
+#include "beliefprop.h"
+#include "gslworkspace.h"
 #include "matrix.h"
 #include "mcmc.h"
 #include "modellike.h"
-#include "beliefprop.h"
+#include "tree.h"
+#include "wordorders.h"
 
-void generate_random_mutation_model(gsl_rng *r, gsl_vector *stabs, gsl_matrix *trans) {
+void generate_random_mutation_model(mcmc_t *mcmc) {
 	int i;
-	gsl_vector *stabs_dash = gsl_vector_alloc(6);
-	gsl_matrix *trans_dash = gsl_matrix_alloc(6, 6);
 
-        initialise_stabs(stabs, 1.0);
-        gsl_vector_set(stabs, 0, 0.1);
-        initialise_trans(r, trans);
-
+        initialise_stabs(mcmc, 1.0);
+        initialise_trans(mcmc);
 	for(i=0; i<25; i++) {
-		draw_proposal(NULL, r, stabs, stabs_dash, trans, trans_dash);
-                vector_copy(stabs_dash, stabs);
-                matrix_copy(trans_dash, trans);
+		draw_proposal(mcmc);
+		gsl_vector_memcpy(mcmc->stabs, mcmc->stabs_dash);
+		gsl_matrix_memcpy(mcmc->trans, mcmc->trans_dash);
 	}
-
-	gsl_vector_free(stabs_dash);
-	gsl_matrix_free(trans_dash);
-
 }
 
 void read_mutation_model(char *filename, gsl_vector *stabs, gsl_matrix *trans) {
@@ -127,50 +120,46 @@ int sample_6_dist(gsl_rng *r, double *dist) {
 	return 66;
 }
 
-void evolve_down(gsl_rng *r, node_t *node, gsl_vector_complex *evals, gsl_matrix_complex *evecs, gsl_matrix_complex *evecs_inv) {
+void evolve_down(node_t *node, mcmc_t *mcmc, gslws_t *ws) {
 	int i;
 	int my_wordorder = 0;
 	int child_wordorder = 0;
 	while(!node->l_message[my_wordorder]) {
 		my_wordorder++;
 	}
-        gsl_matrix *P = gsl_matrix_alloc(6,6);
 	if(node->left_child != NULL) {
-		compute_p(evals, evecs, evecs_inv, node->left_branch, P);
+		compute_p(ws, node->left_branch);
 		//fprint_matrix(stdout, P);
 		for(i=0; i<6; i++) {
-			node->left_child->dist[i] = gsl_matrix_get(P, my_wordorder, i);
+			node->left_child->dist[i] = gsl_matrix_get(ws->P, my_wordorder, i);
 			node->left_child->l_message[i] = 0.0;
 		}
-		child_wordorder = sample_6_dist(r, node->left_child->dist);
+		child_wordorder = sample_6_dist(mcmc->r, node->left_child->dist);
 		//printf("Sampled word order %d\n", child_wordorder);
 		node->left_child->l_message[child_wordorder] = 1.0;
-		evolve_down(r, node->left_child, evals, evecs, evecs_inv);
+		evolve_down(node->left_child, mcmc, ws);
 	}
 	if(node->right_child != NULL) {
-		compute_p(evals, evecs, evecs_inv, node->right_branch, P);
+		compute_p(ws, node->right_branch);
 		for(i=0; i<6; i++) {
-			node->right_child->dist[i] = gsl_matrix_get(P, my_wordorder, i);
+			node->right_child->dist[i] = gsl_matrix_get(ws->P, my_wordorder, i);
 			node->right_child->l_message[i] = 0.0;
 		}
-		child_wordorder = sample_6_dist(r, node->right_child->dist);
+		child_wordorder = sample_6_dist(mcmc->r, node->right_child->dist);
 		//printf("Sampled word order %d\n", child_wordorder);
 		node->right_child->l_message[child_wordorder] = 1.0;
-		evolve_down(r, node->right_child, evals, evecs, evecs_inv);
+		evolve_down(node->right_child, mcmc, ws);
 	}
 }
 
-void evolve_on_tree(gsl_rng *r, node_t *root, int rootorder, gsl_matrix *Q) {
+void evolve_on_tree(node_t *root, int rootorder, mcmc_t *mcmc, gslws_t *ws)  {
 	int i;
-        gsl_vector_complex *evals = gsl_vector_complex_alloc(6);
-        gsl_matrix_complex *evecs = gsl_matrix_complex_alloc(6,6);
-        gsl_matrix_complex *evecs_inv = gsl_matrix_complex_alloc(6,6);
-        decompose_q(Q, evals, evecs, evecs_inv);
+        decompose_q(mcmc->Q, ws);
 	for(i=0; i<6; i++) {
 		root->l_message[i] = 0.0;
 	}
 	root->l_message[rootorder] = 1.0;
-	evolve_down(r, root, evals, evecs, evecs_inv);
+	evolve_down(root, mcmc, ws);
 }
 
 int main(int argc, char **argv) {
@@ -186,6 +175,8 @@ int main(int argc, char **argv) {
 	node_t *tree;
 	double likelihood, prior, posterior, max_likelihood = 0;
 	float cutoff, cumul;
+	mcmc_t mcmc;
+	gslws_t ws;
 	filename = calloc(64, sizeof(char));
 	gsl_vector *stabs = gsl_vector_alloc(6);
 	gsl_matrix *trans = gsl_matrix_alloc(6, 6);
@@ -200,6 +191,7 @@ int main(int argc, char **argv) {
 	fread(&seed, sizeof(seed), 1, fp);
 	fclose(fp);
 	gsl_rng_set(r, seed);
+
 
 	// Option parsing
 	// defaults
@@ -252,44 +244,47 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	initialise_mcmc(&mcmc);
+	alloc_gslws(&ws);
+
 	if(random_mutation) {
 		printf("Generating random mutation model...\n");
-		generate_random_mutation_model(r, stabs, trans);
+		generate_random_mutation_model(&mcmc);
 	} else {
 		printf("Reading mutation model...\n");
-		read_mutation_model(mutfile, stabs, trans);
+		read_mutation_model(mutfile, mcmc.stabs, mcmc.trans);
 	}
 	printf("Building Q...\n");
-	build_q(Q, stabs, trans);
+	build_q(&mcmc);
 	strcpy(filename, outfile);
 	strcat(filename, "_matrix");
 
 	// Find stationary and sample root
-        decompose_q(Q, evals, evecs, evecs_inv);
-	compute_p(evals, evecs, evecs_inv, 1000000, P);
-	cutoff = gsl_rng_uniform(r);
+        decompose_q(mcmc.Q, &ws);
+	compute_p(&ws, 1000000);
+	cutoff = gsl_rng_uniform(mcmc.r);
 	rootorder = 0;
-	cumul = gsl_matrix_get(P, 0, 0);
+	cumul = gsl_matrix_get(ws.P, 0, 0);
 	while(cumul < cutoff) {
 		printf("Cutoff: %f\n", cutoff);
 		printf("Cumul: %f\n", cumul);
 		printf("Root: %d\n", rootorder);
 		rootorder++;
-		cumul += gsl_matrix_get(P,0, rootorder);
+		cumul += gsl_matrix_get(ws.P,0, rootorder);
 	}
 
 	printf("Saving Q matrix...\n");
 	fp = fopen(filename, "w");
 	fprintf(fp, "%d\n", rootorder);
 	fprintf(fp, "----------\n");
-	fprint_matrix(fp, Q);
+	fprint_matrix(fp, mcmc.Q);
 	fclose(fp);
 
 	printf("Building tree...\n");
 	tree = build_tree(treefile, leaffile);
 
 	printf("Evolving on tree...\n");
-	evolve_on_tree(r, tree, rootorder, Q); 
+	evolve_on_tree(tree, rootorder, &mcmc, &ws); 
 
 	strcpy(filename, outfile);
 	strcat(filename, "_leaves");
@@ -303,7 +298,7 @@ int main(int argc, char **argv) {
 //	likelihood = get_model_likelihood(fp, tree, Q);
 	fclose(fp);
 	printf("Generated data with:\n");
-	prior = get_prior(stabs, trans);
+	prior = get_log_prior(mcmc.stabs, mcmc.trans);
 	printf("Prior = %e\n", prior);
 	printf("Likelihood = %e\n", likelihood);
 	printf("Posterior = %e\n", prior*likelihood);
