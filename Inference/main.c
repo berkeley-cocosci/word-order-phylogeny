@@ -37,7 +37,7 @@ void handle_treeset(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t *ws, samp
 		upwards_belprop(logfp, trees, mcmc->Q, ws, multitree);
 
 		/* Record sample */
-		process_sample(sm, mcmc, trees);
+		process_sample(sm, mcmc, trees[0]);
 	}
 }
 
@@ -75,7 +75,8 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 	}
 
 	// Finish up
-	finish(&sm);
+	compute_means(&sm);
+	save_common_q("results", &sm);
 	fclose(logfp);
 }
 
