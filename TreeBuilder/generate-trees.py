@@ -63,21 +63,48 @@ def make_trees(languages, age_params, build_method, family_name, tree_count):
     # Build random variations of base matrix
     for index in range(0, tree_count):
         failures = 0
+        filename = os.path.join("generated_trees", "whole", build_method, family_name, "tree_%d" % (index+1))
         while failures < 10:
             try:
-                make_tree(base_matrix, age_params, build_method, family_name, index)
+                make_tree(base_matrix, age_params, filename)
                 break
             except:
                 failures += 1
                 continue
         if failures == 10:
-            print "Aborting after sustained failure to generated %d-th tree with the following parameters:" % index
+            print "Aborting after sustained failure to generated %d-th whole tree with the following parameters:" % index
             print build_method, family_name, tree_count
             exit(42)
 
-def make_tree(base_matrix, age_params, build_method, family_name, index):
+def make_split_trees(languages, age_params, build_method, family_name, tree_count):
+    for index in range(0, tree_count):
+        failures = 0
+        while failures < 10:
+            try:
+                # Split the languages up
+                shuffle(languages)
+                pivot = len(languages)/2
+                langs1 = languages[0:pivot]
+                langs2 = languages[pivot:]
+                for half, langs in enumerate((langs1, langs2)):
+                    filename = os.path.join("generated_trees", "split", str(half+1), build_method, family_name, "tree_%d" % (index+1,))
+                    base = build_matrix_by_method_name(langs, build_method)
+                    make_tree(base, age_params, filename, preserve_base=False)
+                break
+            except:
+                failures += 1
+                continue
+        if failures == 10:
+            print "Aborting after sustained failure to generated %d-th split tree with the following parameters:" % index
+            print build_method, family_name, tree_count
+            exit(42)
 
-    matrix = deepcopy(base_matrix)
+def make_tree(base_matrix, age_params, filename, preserve_base=True):
+
+    if preserve_base:
+        matrix = deepcopy(base_matrix)
+    else:
+        matrix = base_matrix
 
     # Add random noise
     # The biggest distance is now 1.0
@@ -96,7 +123,6 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
             matrix[k][j] = matrix[j][k]
 
     # Save the matrix and generate a tree from it
-    filename = os.path.join("generated_trees", build_method, family_name, "tree_%d" % (index+1))
     directory = os.path.dirname(filename)
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -159,8 +185,8 @@ def make_tree(base_matrix, age_params, build_method, family_name, index):
     fp.close()
     
     # Clean up after ourselves...
-    #os.unlink("%s.distance" % filename)
-    #os.unlink("%s.tree" % filename)
+    os.unlink("%s.distance" % filename)
+    os.unlink("%s.tree" % filename)
 
 def report_on_dense_langs(languages):
     family_counts = {}
@@ -271,6 +297,7 @@ def main():
     for method in ("geographic", "genetic", "feature", "combination"):
         for langs, age, name in zip(languages, ages, names):
             make_trees(langs, age, method, name, 100)
+            make_split_trees(langs, age, method, name, 100)
 
 if __name__ == "__main__":
     main()
