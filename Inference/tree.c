@@ -453,15 +453,13 @@ void load_trees(node_t **trees, char *dir, int method, int family, int treeindex
 	if(multitree) {
 		for(i=0; i<6; i++) {
 			sprintf(treefile, "%s/%s/%s/tree_%d.simple", dir, types[method], families[i], treeindex+1);
-			sprintf(leaffile, "%s../%s.leafdata", dir, families[i]);
+			sprintf(leaffile, "../TreeBuilder/generated_trees/%s.leafdata", families[i]);
 			trees[i] = build_tree(treefile, leaffile, shuffle, rng);
 			reset_tree(trees[i]);
 		}	
 	} else {
-		sprintf(treefile, dir);
 		sprintf(treefile, "%s/%s/%s/tree_%d.simple", dir, types[method], families[family], treeindex+1);
-		sprintf(leaffile, dir);
-		sprintf(leaffile, "%s../%s.leafdata", dir, families[family]);
+		sprintf(leaffile, "../TreeBuilder/generated_trees/%s.leafdata", families[family]);
 		trees[0] = build_tree(treefile, leaffile, shuffle, rng);
 		reset_tree(trees[0]);
 	}
