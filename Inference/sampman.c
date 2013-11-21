@@ -78,3 +78,121 @@ void finish(sampman_t *sm) {
 	printf("Mean Q is:\n");
 	fprint_matrix(stdout, sm->Q_sum);
 }
+
+void save_common_q(char *directory, sampman_t *sm) {
+	char filename[1024];
+	FILE *fp;
+	/* Write summary file */
+	strcpy(filename, directory);
+	strcat(filename, "/summary");
+	fp = fopen(filename, "w");
+
+	fprintf(fp, "Posterior mean stabilities:\n");
+	fprint_vector(fp, sm->stabs_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean transitions:\n");
+	fprint_matrix(fp, sm->trans_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean Q:\n");
+	fprint_matrix(fp, sm->Q_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "P matrix over short branch:\n");
+	fprint_matrix(fp, sm->P_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean stationary:\n");
+	fprint_vector(fp, sm->stationary_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean uniform ancestrals:\n");
+	fprint_matrix(fp, sm->ancestral_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean fuzzy ancestrals:\n");
+	fprint_matrix(fp, sm->fuzz_prior_ancestral_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean stationary ancestrals:\n");
+	fprint_matrix(fp, sm->stationary_prior_ancestral_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Hypothesis probabilities:\n");
+	fprintf(fp, "SOV to SVO (over VSO): %f\n", sm->statistics[SOV_TO_SVO]);
+	fprintf(fp, "SVO to SOV (over VSO): %f\n", sm->statistics[SVO_TO_SOV]);
+	fprintf(fp, "VSO to SOV (over SVO): %f\n", sm->statistics[VSO_TO_SOV]);
+	fprintf(fp, "SVO most stable: %f\n", sm->statistics[SVO_MOST_STAB]);
+//	fprintf(fp, "SOV most likely ancestor: %f\n", statistics[SOV_MOST_LIKE]);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Maximum posterior: %f\n", sm->max_log_poster);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "MAP stabilities:\n");
+	fprint_vector(fp, sm->stabs_map);
+	fprintf(fp, "MAP transitions:\n");
+	fprint_matrix(fp, sm->trans_map);
+	fprintf(fp, "MAP stationary:\n");
+	fprint_vector(fp, sm->stationary_map);
+	fprintf(fp, "MAP ancestral word order distributions:\n");
+	fprint_matrix(fp, sm->ancestral_sum);
+	fprintf(fp, "----------\n");
+	fclose(fp);
+}
+
+void save_indiv_q(char *directory, sampman_t **sm) {
+	char filename[1024];
+	FILE *fp;
+	int i;
+	/* Write summary file */
+	strcpy(filename, directory);
+	strcat(filename, "/summary");
+	fp = fopen(filename, "w");
+
+	/* This is all basically nonsense which makes no sense in an
+	 * individual Q situation.  However, for backward compatibility
+	 * with the code that parses up this output and turns it into
+	 * MATLAB stuff, we need to generate it anyway.
+	 */
+
+	fprintf(fp, "Posterior mean stabilities:\n");
+	fprint_vector(fp, sm[0]->stabs_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean transitions:\n");
+	fprint_matrix(fp, sm[0]->trans_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean Q:\n");
+	fprint_matrix(fp, sm[0]->Q_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "P matrix over short branch:\n");
+	fprint_matrix(fp, sm[0]->P_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean stationary:\n");
+	fprint_vector(fp, sm[0]->stationary_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean ancestral:\n");
+	for(i=0; i<6; i++) fprint_matrix(fp, sm[i]->ancestral_sum);
+	fprintf(fp, "\n");
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean fuzzy ancestrals:\n");
+	for(i=0; i<6; i++) fprint_matrix(fp, sm[i]->fuzz_prior_ancestral_sum);
+	fprintf(fp, "\n");
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean stationary ancestrals:\n");
+	for(i=0; i<6; i++) fprint_matrix(fp, sm[i]->stationary_prior_ancestral_sum);
+	fprintf(fp, "\n");
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Hypothesis probabilities:\n");
+	fprintf(fp, "SOV to SVO (over VSO): %f\n", sm[0]->statistics[SOV_TO_SVO]);
+	fprintf(fp, "SVO to SOV (over VSO): %f\n", sm[0]->statistics[SVO_TO_SOV]);
+	fprintf(fp, "VSO to SOV (over SVO): %f\n", sm[0]->statistics[VSO_TO_SOV]);
+	fprintf(fp, "SVO most stable: %f\n", sm[0]->statistics[SVO_MOST_STAB]);
+//	fprintf(fp, "SOV most likely ancestor: %f\n", statistics[SOV_MOST_LIKE]);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Maximum posterior: %f\n", sm[0]->max_log_poster);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "MAP stabilities:\n");
+	fprint_vector(fp, sm[0]->stabs_map);
+	fprintf(fp, "MAP transitions:\n");
+	fprint_matrix(fp, sm[0]->trans_map);
+	fprintf(fp, "MAP stationary:\n");
+	fprint_vector(fp, sm[0]->stationary_map);
+	fprintf(fp, "MAP ancestral word order distribution:\n");
+	for(i=1;i<6;i++) fprint_matrix(fp, sm[0]->ancestral_sum);
+	fprintf(fp, "\n");
+	fprintf(fp, "----------\n");
+
+	fclose(fp);
+}
