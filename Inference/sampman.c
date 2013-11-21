@@ -74,7 +74,7 @@ void process_sample(sampman_t *sm, mcmc_t *mcmc, node_t **trees) {
 	gsl_matrix_add(sm->Q_sum, mcmc->Q);
 }
 
-void shout_out(sampman_t *sm) {
+void finish(sampman_t *sm) {
 	printf("Mean Q is:\n");
 	fprint_matrix(stdout, sm->Q_sum);
 }

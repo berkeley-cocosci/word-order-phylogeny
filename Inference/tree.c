@@ -6,34 +6,8 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
-struct leafdata{
-	char *langname;
-	uint8_t wordorder;
-	struct leafdata* next;
-};
-typedef struct leafdata leafdata_t;
-
-struct node{
-	char nodename[16];
-	float left_branch;
-	float right_branch;
-	float distance_from_root;
-	struct node *parent;
-	struct node *left_child;
-	struct node *right_child;
-	double p_message[6];
-	double l_message[6];
-	double r_message[6];
-	double dist[6];
-	int ml_order;
-	int got_left;
-	int got_right;
-	int ready_to_feed;
-	int has_passed;
-	int has_cached[6];
-	double cache[6];
-};
-typedef struct node node_t;
+#include "tree.h"
+#include "beliefprop.h"
 
 leafdata_t* read_leaf_data(char* filename) {
 	FILE *fp;
@@ -461,3 +435,34 @@ node_t *build_tree(char *treefile, char *leaffile, int shuffle_leaves, gsl_rng *
 	return &nodes[0];
 }
 
+void load_trees(node_t **trees, char *dir, int method, int family, int treeindex, int shuffle, int multitree) {
+	unsigned long int seed;
+	FILE *fp;
+	int i;
+	char treefile[1024];
+	char leaffile[1024];
+	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
+	char types[][16] = {"geographic", "genetic", "feature", "combination" };
+	gsl_rng *rng = gsl_rng_alloc(gsl_rng_taus);
+	/* Seed PRNG */
+	fp = fopen("/dev/urandom", "r");
+	fread(&seed, sizeof(seed), 1, fp);
+	fclose(fp);
+	gsl_rng_set(rng, seed);
+
+	if(multitree) {
+		for(i=0; i<6; i++) {
+			sprintf(treefile, "%s/%s/%s/tree_%d.simple", dir, types[method], families[i], treeindex+1);
+			sprintf(leaffile, "%s../%s.leafdata", dir, families[i]);
+			trees[i] = build_tree(treefile, leaffile, shuffle, rng);
+			reset_tree(trees[i]);
+		}	
+	} else {
+		sprintf(treefile, dir);
+		sprintf(treefile, "%s/%s/%s/tree_%d.simple", dir, types[method], families[family], treeindex+1);
+		sprintf(leaffile, dir);
+		sprintf(leaffile, "%s../%s.leafdata", dir, families[family]);
+		trees[0] = build_tree(treefile, leaffile, shuffle, rng);
+		reset_tree(trees[0]);
+	}
+}

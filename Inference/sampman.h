@@ -40,4 +40,4 @@ void initialise_sampman(sampman_t *sm, char *outdir);
 void compute_means(sampman_t *sm);
 void reset_summary(sampman_t *sm);
 void process_sample(sampman_t *sm, mcmc_t *mcmc, node_t **trees);
-void shout_out(sampman_t *sm);
+void finish(sampman_t *sm);
