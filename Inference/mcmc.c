@@ -5,13 +5,13 @@
 #include <unistd.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-#include<gsl/gsl_matrix.h>
-#include<gsl/gsl_matrix_complex_float.h>
-#include<gsl/gsl_vector.h>
-#include<gsl/gsl_vector_complex.h>
-#include<gsl/gsl_eigen.h>
-#include<gsl/gsl_permutation.h>
-#include<math.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_matrix_complex_float.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_vector_complex.h>
+#include <gsl/gsl_eigen.h>
+#include <gsl/gsl_permutation.h>
+#include <math.h>
 
 #include "gslworkspace.h"
 #include "tree.h"
@@ -46,9 +46,17 @@ void initialise_mcmc(mcmc_t *mcmc) {
 	build_q(mcmc);
 }
 
-void compute_probabilities(mcmc_t *mcmc, node_t **trees, gslws_t *ws, int multitree) {
+void compute_single_tree_probabilities(mcmc_t *mcmc, node_t *tree, gslws_t *ws) {
 	mcmc->log_prior = get_log_prior(mcmc->stabs, mcmc->trans);
-	mcmc->log_lh = get_model_loglh(trees, mcmc->Q, ws, multitree);
+	mcmc->log_lh = get_model_loglh(tree, mcmc->Q, ws);
+	mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
+}
+
+void compute_multi_tree_probabilities(mcmc_t *mcmc, node_t **trees, gslws_t *wses) {
+	uint8_t i;
+	mcmc->log_prior = get_log_prior(mcmc->stabs, mcmc->trans);
+	mcmc->log_lh = 0;
+	for(i=0; i<6; i++) mcmc->log_lh += get_model_loglh(trees[i], mcmc->Q, &wses[i]);
 	mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
 }
 
@@ -217,46 +225,72 @@ void handle_acceptance_probability(double *a) {
 	}
 }
 
-void mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, gslws_t *ws, int multitree) {
-	double new_log_prior, new_log_lh, new_log_poster, a, sample;
-
-	build_q(mcmc);
-	fprintf(fp, "Time to take a closer look...\n");
-	fprintf(fp, "Current Q:\n");
-	fprint_matrix(fp, mcmc->Q);
-	fprintf(fp, "Current posterior: %e\n", mcmc->log_poster);
-
-	draw_proposal(mcmc);
-
-	fprintf(fp, "Proposed stabs:\n");
-	fprint_vector(fp, mcmc->stabs_dash);
-	fprintf(fp, "Proposed trans:\n");
-	fprint_matrix(fp, mcmc->trans_dash);
-	build_q_dash(mcmc);
-	fprintf(fp, "Proposed Q:\n");
-	fprint_matrix(fp, mcmc->Q_dash);
-
-	new_log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
-	new_log_lh = get_model_loglh(trees, mcmc->Q_dash, ws, multitree);
-	new_log_poster = new_log_prior + new_log_lh;
-
-	// Acceptance probability
+void accept_or_reject(FILE *fp, mcmc_t *mcmc, double new_log_prior, double new_log_lh, double new_log_poster) {
+	double a;
 	a = exp(new_log_poster - mcmc->log_poster);
 	handle_acceptance_probability(&a);
 	fprintf(fp, "Acceptance probability is: %f\n", a);
-	if(a >= 1) {
-		// Accept
+	if(a >= 1 || gsl_rng_uniform(mcmc->r) <= a) {
 		gsl_vector_memcpy(mcmc->stabs, mcmc->stabs_dash);
 		gsl_matrix_memcpy(mcmc->trans, mcmc->trans_dash);
 		mcmc->log_prior = new_log_prior;
 		mcmc->log_lh = new_log_lh;
 		mcmc->log_poster = new_log_poster;
-	} else {
-		sample = gsl_rng_uniform(mcmc->r);
-		if(sample <= a) {
-			gsl_vector_memcpy(mcmc->stabs, mcmc->stabs_dash);
-			gsl_matrix_memcpy(mcmc->trans, mcmc->trans_dash);
-		}
 	}
+}
 
+void single_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t *tree, gslws_t *ws) {
+	double new_log_prior, new_log_lh, new_log_poster;
+
+	// Draw proposal
+	build_q(mcmc);
+	draw_proposal(mcmc);
+	build_q_dash(mcmc);
+
+	// Be noisey
+	fprintf(fp, "Time to take a closer look...\n");
+	fprintf(fp, "Current Q:\n");
+	fprint_matrix(fp, mcmc->Q);
+	fprintf(fp, "Current posterior: %e\n", mcmc->log_poster);
+	fprintf(fp, "Proposed stabs:\n");
+	fprint_vector(fp, mcmc->stabs_dash);
+	fprintf(fp, "Proposed trans:\n");
+	fprint_matrix(fp, mcmc->trans_dash);
+	fprintf(fp, "Proposed Q:\n");
+	fprint_matrix(fp, mcmc->Q_dash);
+
+	// Compute new posterior and accept or reject
+	new_log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
+	new_log_lh = get_model_loglh(tree, mcmc->Q_dash, ws);
+	new_log_poster = new_log_prior + new_log_lh;
+	accept_or_reject(fp, mcmc, new_log_prior, new_log_lh, new_log_poster);
+}
+
+void multi_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, gslws_t *wses) {
+	uint8_t i;
+	double new_log_prior, new_log_lh, new_log_poster;
+
+	// Draw proposal
+	build_q(mcmc);
+	draw_proposal(mcmc);
+	build_q_dash(mcmc);
+
+	// Be noisey
+	fprintf(fp, "Time to take a closer look...\n");
+	fprintf(fp, "Current Q:\n");
+	fprint_matrix(fp, mcmc->Q);
+	fprintf(fp, "Current posterior: %e\n", mcmc->log_poster);
+	fprintf(fp, "Proposed stabs:\n");
+	fprint_vector(fp, mcmc->stabs_dash);
+	fprintf(fp, "Proposed trans:\n");
+	fprint_matrix(fp, mcmc->trans_dash);
+	fprintf(fp, "Proposed Q:\n");
+	fprint_matrix(fp, mcmc->Q_dash);
+
+	// Compute new posterior and accept or reject
+	new_log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
+	new_log_lh = 0;
+	for(i=0; i<6; i++) new_log_lh += get_model_loglh(trees[i], mcmc->Q, &wses[i]);
+	new_log_poster = new_log_prior + new_log_lh;
+	accept_or_reject(fp, mcmc, new_log_prior, new_log_lh, new_log_poster);
 }

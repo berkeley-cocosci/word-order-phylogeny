@@ -16,40 +16,63 @@
 #include "beliefprop.h"
 #include "sampman.h"
 
-void handle_treeset(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t *ws, sampman_t *sm, int burnin, int samples, int lag, int multitree) {
+void do_single_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t *tree, gslws_t *ws, sampman_t *sm, int burnin, int samples, int lag) {
 	int i, j;
 	/* Burn in */
-	for(i=0; i<burnin; i++) mcmc_iteration(logfp, mcmc, trees, ws, multitree);
+	for(i=0; i<burnin; i++) single_tree_mcmc_iteration(logfp, mcmc, tree, ws);
 	/* Take samples */
 	for(i=0; i<samples; i++) {
 		if(gsl_rng_uniform_int(mcmc->r, 10000) >= 9999) {
 			/* Random restart! */
 			random_restart(mcmc);
-			compute_probabilities(mcmc, trees, ws, multitree);
-			for(i=0; i<burnin; i++) mcmc_iteration(logfp, mcmc, trees, ws, multitree);
+			compute_single_tree_probabilities(mcmc, tree, ws);
+			for(i=0; i<burnin; i++) single_tree_mcmc_iteration(logfp, mcmc, tree, ws);
 		}
 
 		for(j=0; j<lag; j++) {
-			mcmc_iteration(logfp, mcmc, trees, ws, multitree);
+			single_tree_mcmc_iteration(logfp, mcmc, tree, ws);
 		}
 
 		build_q(mcmc);
-		upwards_belprop(logfp, trees, mcmc->Q, ws, multitree);
+		upwards_belprop(logfp, tree, mcmc->Q, ws);
 
 		/* Record sample */
-		process_sample(sm, mcmc, trees[0]);
+		process_sample(sm, mcmc, tree);
+	}
+}
+
+void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t *wses, sampman_t *sms, int burnin, int samples, int lag) {
+	int i, j;
+	/* Burn in */
+	for(i=0; i<burnin; i++) multi_tree_mcmc_iteration(logfp, mcmc, trees, wses);
+	/* Take samples */
+	for(i=0; i<samples; i++) {
+		if(gsl_rng_uniform_int(mcmc->r, 10000) >= 9999) {
+			/* Random restart! */
+			random_restart(mcmc);
+			compute_multi_tree_probabilities(mcmc, trees, wses);
+			for(i=0; i<burnin; i++) multi_tree_mcmc_iteration(logfp, mcmc, trees, wses);
+		}
+
+		for(j=0; j<lag; j++) {
+			multi_tree_mcmc_iteration(logfp, mcmc, trees, wses);
+		}
+
+		build_q(mcmc);
+		for(j=0; j<6; j++) {
+			upwards_belprop(logfp, trees[j], mcmc->Q, &wses[j]);
+			process_sample(&sms[j], mcmc, trees[j]);
+		}
 	}
 }
 
 void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, char *outdir, int logging) {
 	FILE *logfp;
 	int treeindex, i;
-	int multitree = 1;  // Family variable in load_trees is not used if multitree=1
-	int family = 0;  // Family variable in load_trees is not used if multitree=1
-	node_t **trees = calloc(sizeof(node_t*), 6);
+	node_t **trees = calloc(6, sizeof(node_t*));
 	mcmc_t mcmc;
-	gslws_t ws;
-	sampman_t sm;
+	gslws_t *wses = calloc(6, sizeof(gslws_t));
+	sampman_t *sms = calloc(6, sizeof(sampman_t));
 
 	// Open log file
 	if(logging) {
@@ -58,32 +81,34 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 		logfp = fopen("/dev/null", "w");
 	}
 
-	initialise_sampman(&sm, outdir);
 	initialise_mcmc(&mcmc);
-	alloc_gslws(&ws);
+	for(i=0; i<6; i++) {
+		alloc_gslws(&wses[i]);
+		initialise_sampman(&sms[i], outdir);
+	}
 
 	// Loop over trees...
 	for(treeindex=0; treeindex<5; treeindex++) {
 		/* Build tree(s) */
-		load_trees(trees, "../TreeBuilder/generated_trees/whole/", method, family, treeindex, shuffle, multitree);
+		for(i=0; i<6; i++) load_tree(&trees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
 		/* Draw samples for this tree (set) */
-		compute_probabilities(&mcmc, trees, &ws, multitree);
-		handle_treeset(logfp, &mcmc, trees, &ws, &sm, burnin, samples, lag, multitree);
+		compute_multi_tree_probabilities(&mcmc, trees, wses);
+		do_multi_tree_inference(logfp, &mcmc, trees, wses, sms, burnin, samples, lag);
 		/* Free up tree memory */
-		free(trees[0]);
-		if(multitree) for(i=1; i<6; i++) free(trees[i]);
+		for(i=0; i<6; i++) free(trees[i]);
 	}
 
 	// Finish up
-	compute_means(&sm);
-	save_common_q("results", &sm);
+	for(i=0; i<6; i++) compute_means(&sms[i]);
+	save_common_q("results", sms);
 	fclose(logfp);
 }
 
 void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, char *outdir, int logging) {
 	FILE *logfp;
-	int treeindex, family;
-	node_t **trees = calloc(sizeof(node_t*), 6);
+	uint8_t family;
+	int treeindex;
+	node_t *tree;
 	mcmc_t mcmc;
 	gslws_t ws;
 	sampman_t sm;
@@ -95,24 +120,26 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, ch
 		logfp = fopen("/dev/null", "w");
 	}
 
-	initialise_sampman(&sm, outdir);
 	initialise_mcmc(&mcmc);
 	alloc_gslws(&ws);
 
-	// Loop over families...
+	// Loop over families
 	for(family=0; family<6; family++) {
-		// Loop over trees...
+		initialise_sampman(&sm, outdir);
+		// Loop over trees
 		for(treeindex=0; treeindex<5; treeindex++) {
-			/* Build tree(s) */
-			load_trees(trees, "../TreeBuilder/generated_trees/whole/", method, family, treeindex, shuffle, 0);
+			/* Build tree */
+			load_tree(&tree, "../TreeBuilder/generated_trees/whole/", method, family, treeindex, shuffle);
 			/* Draw samples for this tree (set) */
-			compute_probabilities(&mcmc, trees, &ws, 0);
-			handle_treeset(logfp, &mcmc, trees, &ws, &sm, burnin, samples, lag, 0);
+			compute_single_tree_probabilities(&mcmc, tree, &ws);
+			do_single_tree_inference(logfp, &mcmc, tree, &ws, &sm, burnin, samples, lag);
 			/* Free up tree memory */
-			free(trees[0]);
+			free(tree);
+
+			// Finish up
+			compute_means(&sm);
+			save_indiv_q("results", &sm);
 		}
-		// Finish up
-		finish(&sm);
 	}
 
 	fclose(logfp);
@@ -121,13 +148,13 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, ch
 void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, char *outdir, int logging) {
 	FILE *logfp;
 	int treeindex, i;
-	int multitree = 1;  // Family variable in load_trees is not used if multitree=1
-	int family = 0;  // Family variable in load_trees is not used if multitree=1
-	node_t **trees1 = calloc(sizeof(node_t*), 6);
-	node_t **trees2 = calloc(sizeof(node_t*), 6);
+	node_t **trees1 = calloc(6, sizeof(node_t*));
+	node_t **trees2 = calloc(6, sizeof(node_t*));
 	mcmc_t mcmc1, mcmc2;
-	gslws_t ws1, ws2;
-	sampman_t sm1, sm2;
+	gslws_t *wses1 = calloc(6, sizeof(gslws_t));
+	gslws_t *wses2 = calloc(6, sizeof(gslws_t));
+	sampman_t *sms1 = calloc(6, sizeof(sampman_t));
+	sampman_t *sms2 = calloc(6, sizeof(sampman_t));
 
 	// Open log file
 	if(logging) {
@@ -136,33 +163,41 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 		logfp = fopen("/dev/null", "w");
 	}
 
-	initialise_sampman(&sm1, outdir);
-	initialise_sampman(&sm2, outdir);
 	initialise_mcmc(&mcmc1);
 	initialise_mcmc(&mcmc2);
-	alloc_gslws(&ws1);
-	alloc_gslws(&ws2);
+	for(i=0; i<6; i++) {
+		alloc_gslws(&wses1[i]);
+		alloc_gslws(&wses2[i]);
+		initialise_sampman(&sms1[i], outdir);
+		initialise_sampman(&sms2[i], outdir);
+	}
 
 	// Loop over trees...
 	for(treeindex=0; treeindex<5; treeindex++) {
 		/* Build tree(s) */
-		load_trees(trees1, "../TreeBuilder/generated_trees/split/1/", method, family, treeindex, shuffle, multitree);
-		load_trees(trees2, "../TreeBuilder/generated_trees/split/2/", method, family, treeindex, shuffle, multitree);
+		for(i=0; i<6; i++) {
+			load_tree(&trees1[i], "../TreeBuilder/generated_trees/split/1/", method, i, treeindex, shuffle);
+			load_tree(&trees2[i], "../TreeBuilder/generated_trees/split/2/", method, i, treeindex, shuffle);
+		}
 		/* Draw samples for this tree (set) */
-		compute_probabilities(&mcmc1, trees1, &ws1, multitree);
-		compute_probabilities(&mcmc2, trees2, &ws2, multitree);
-		handle_treeset(logfp, &mcmc1, trees1, &ws1, &sm1, burnin, samples, lag, multitree);
-		handle_treeset(logfp, &mcmc2, trees2, &ws2, &sm2, burnin, samples, lag, multitree);
+		compute_multi_tree_probabilities(&mcmc1, trees1, wses1);
+		compute_multi_tree_probabilities(&mcmc2, trees2, wses2);
+		do_multi_tree_inference(logfp, &mcmc1, trees1, wses1, sms1, burnin, samples, lag);
+		do_multi_tree_inference(logfp, &mcmc2, trees2, wses2, sms2, burnin, samples, lag);
 		/* Free up tree memory */
-		free(trees1[0]);
-		free(trees2[0]);
-		if(multitree) for(i=1; i<6; i++) free(trees1[i]);
-		if(multitree) for(i=1; i<6; i++) free(trees2[i]);
+		for(i=0; i<6; i++) {
+			free(trees1[i]);
+			free(trees2[i]);
+		}
 	}
 
 	// Finish up
-	finish(&sm1);
-	finish(&sm2);
+	for(i=0; i<6; i++) {
+		compute_means(&sms1[i]);
+		compute_means(&sms2[i]);
+	}
+	save_common_q("results", sms1);
+	save_common_q("results", sms2);
 	fclose(logfp);
 }
 

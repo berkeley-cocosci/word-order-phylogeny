@@ -448,47 +448,40 @@ void find_likely_interiors(FILE *fp, node_t *node) {
 	if(node->right_child != NULL) find_likely_interiors(fp, node->right_child);
 }
 
-void upwards_belprop(FILE *fp, node_t **trees, gsl_matrix *Q, gslws_t *ws, int multitree) {
+void upwards_belprop(FILE *fp, node_t *tree, gsl_matrix *Q, gslws_t *ws) {
 	node_t **listhead;
-	node_t *root;
 	int listsize = 0;
-	int i, treeindex;
+	int i;
 	listhead = NULL;
 	double norm;
 
-	for(treeindex=0; treeindex<6; treeindex++) {
-		if(treeindex>0 && multitree==0) break;
+	reset_tree(tree);
 
-		root = trees[treeindex];
-		reset_tree(root);
+	decompose_q(Q, ws);
 
-		decompose_q(Q, ws);
-
-		get_ready_nodes(root, &listhead, &listsize);
-		while(listsize != 0) {
-			fprintf(fp, "Found %d ready nodes!\n", listsize);
-			for(i=0; i<listsize; i++) {
-				pass_up(fp, listhead[i], ws);
-			}
-			mark_ready_nodes(fp, root);
-			listsize = 0;
-			get_ready_nodes(root, &listhead, &listsize);
+	get_ready_nodes(tree, &listhead, &listsize);
+	while(listsize != 0) {
+		fprintf(fp, "Found %d ready nodes!\n", listsize);
+		for(i=0; i<listsize; i++) {
+			pass_up(fp, listhead[i], ws);
 		}
-
-		if(!root->has_passed) {
-			fprintf(stderr, "Upwards belief propagation terminated before reaching root!\n");
-			exit(22);
-		}
-		
-		/* Set root poster */
-		norm = 0;
-		for(i=0; i<6; i++) {
-			root->dist[i] = root->l_message[i] * root->r_message[i];
-			norm += root->dist[i];
-		}
-		for(i=0; i<6; i++) {
-			root->dist[i] /= norm;
-		}
+		mark_ready_nodes(fp, tree);
+		listsize = 0;
+		get_ready_nodes(tree, &listhead, &listsize);
 	}
 
+	if(!tree->has_passed) {
+		fprintf(stderr, "Upwards belief propagation terminated before reaching root!\n");
+		exit(22);
+	}
+	
+	/* Set root poster */
+	norm = 0;
+	for(i=0; i<6; i++) {
+		tree->dist[i] = tree->l_message[i] * tree->r_message[i];
+		norm += tree->dist[i];
+	}
+	for(i=0; i<6; i++) {
+		tree->dist[i] /= norm;
+	}
 }

@@ -7,7 +7,6 @@
 #include "tree.h"
 
 void initialise_sampman(sampman_t *sm, char *outdir) {
-	uint8_t i;
 	char mkcmd[1024];
 	sprintf(mkcmd, "mkdir -p %s", outdir);
 	system(mkcmd);
@@ -24,12 +23,10 @@ void initialise_sampman(sampman_t *sm, char *outdir) {
 	sm->stationary_map = gsl_vector_alloc(6);
 	sm->ancestral_sum = gsl_vector_alloc(6);
 	sm->ancestral_map = gsl_vector_alloc(6);
-	sm->fuzz_prior_ancestral_sum = gsl_matrix_alloc(6, 6);
-	sm->fuzz_prior_ancestral_map = gsl_matrix_alloc(6, 6);
-	sm->stationary_prior_ancestral_sum = gsl_matrix_alloc(6, 6);
-	sm->stationary_prior_ancestral_map = gsl_matrix_alloc(6, 6);
-	sm->sliding_fuzz_ancestral_sum = calloc(100, sizeof(gsl_matrix*));
-	for(i=0;i<100;i++) sm->sliding_fuzz_ancestral_sum[i] = gsl_matrix_alloc(6, 6);
+	sm->fuzz_prior_ancestral_sum = gsl_vector_alloc(6);
+	sm->fuzz_prior_ancestral_map = gsl_vector_alloc(6);
+	sm->stationary_prior_ancestral_sum = gsl_vector_alloc(6);
+	sm->stationary_prior_ancestral_map = gsl_vector_alloc(6);
 }
 
 void reset_summary(sampman_t *sm) {
@@ -46,11 +43,10 @@ void reset_summary(sampman_t *sm) {
 	gsl_matrix_set_zero(sm->P_map);
 	gsl_vector_set_zero(sm->ancestral_sum);
 	gsl_vector_set_zero(sm->ancestral_map);
-	gsl_matrix_set_zero(sm->fuzz_prior_ancestral_sum);
-	gsl_matrix_set_zero(sm->fuzz_prior_ancestral_map);
-	gsl_matrix_set_zero(sm->stationary_prior_ancestral_sum);
-	gsl_matrix_set_zero(sm->stationary_prior_ancestral_map);
-	for(i=0;i<100;i++) gsl_matrix_set_zero(sm->sliding_fuzz_ancestral_sum[i]);
+	gsl_vector_set_zero(sm->fuzz_prior_ancestral_sum);
+	gsl_vector_set_zero(sm->fuzz_prior_ancestral_map);
+	gsl_vector_set_zero(sm->stationary_prior_ancestral_sum);
+	gsl_vector_set_zero(sm->stationary_prior_ancestral_map);
 	for(i=0;i<10;i++) sm->statistics[i] = 0.0;
 	sm->sample_count = 0;
 	sm->max_log_poster = -1000000000;
@@ -64,9 +60,8 @@ void compute_means(sampman_t *sm) {
 	gsl_matrix_scale(sm->Q_sum, 1.0 / sm->sample_count);
 	gsl_matrix_scale(sm->P_sum, 1.0 / sm->sample_count);
 	gsl_vector_scale(sm->ancestral_sum, 1.0 / sm->sample_count);
-	gsl_matrix_scale(sm->fuzz_prior_ancestral_sum, 1.0 / sm->sample_count);
-	gsl_matrix_scale(sm->stationary_prior_ancestral_sum, 1.0 / sm->sample_count);
-	for(i=0;i<100;i++) gsl_matrix_scale(sm->sliding_fuzz_ancestral_sum[i], 1.0 / sm->sample_count);
+	gsl_vector_scale(sm->fuzz_prior_ancestral_sum, 1.0 / sm->sample_count);
+	gsl_vector_scale(sm->stationary_prior_ancestral_sum, 1.0 / sm->sample_count);
 	for(i=0;i<10;i++) sm->statistics[i] /= sm->sample_count;
 }
 
@@ -92,7 +87,7 @@ void finish(sampman_t *sm) {
 	fprint_matrix(stdout, sm->Q_sum);
 }
 
-void save_common_q(char *directory, sampman_t *sm) {
+void save_indiv_q(char *directory, sampman_t *sm) {
 	char filename[1024];
 	FILE *fp;
 	/* Write summary file */
@@ -119,10 +114,10 @@ void save_common_q(char *directory, sampman_t *sm) {
 	fprint_vector(fp, sm->ancestral_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean fuzzy ancestrals:\n");
-	fprint_matrix(fp, sm->fuzz_prior_ancestral_sum);
+	fprint_vector(fp, sm->fuzz_prior_ancestral_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean stationary ancestrals:\n");
-	fprint_matrix(fp, sm->stationary_prior_ancestral_sum);
+	fprint_vector(fp, sm->stationary_prior_ancestral_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Hypothesis probabilities:\n");
 	fprintf(fp, "SOV to SVO (over VSO): %f\n", sm->statistics[SOV_TO_SVO]);
@@ -145,7 +140,7 @@ void save_common_q(char *directory, sampman_t *sm) {
 	fclose(fp);
 }
 
-void save_indiv_q(char *directory, sampman_t **sm) {
+void save_common_q(char *directory, sampman_t *sms) {
 	char filename[1024];
 	FILE *fp;
 	int i;
@@ -154,57 +149,51 @@ void save_indiv_q(char *directory, sampman_t **sm) {
 	strcat(filename, "/summary");
 	fp = fopen(filename, "w");
 
-	/* This is all basically nonsense which makes no sense in an
-	 * individual Q situation.  However, for backward compatibility
-	 * with the code that parses up this output and turns it into
-	 * MATLAB stuff, we need to generate it anyway.
-	 */
-
+	/* Nonsense */
 	fprintf(fp, "Posterior mean stabilities:\n");
-	fprint_vector(fp, sm[0]->stabs_sum);
+	fprint_vector(fp, sms[0].stabs_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean transitions:\n");
-	fprint_matrix(fp, sm[0]->trans_sum);
+	fprint_matrix(fp, sms[0].trans_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean Q:\n");
-	fprint_matrix(fp, sm[0]->Q_sum);
+	fprint_matrix(fp, sms[0].Q_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "P matrix over short branch:\n");
-	fprint_matrix(fp, sm[0]->P_sum);
+	fprint_matrix(fp, sms[0].P_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean stationary:\n");
-	fprint_vector(fp, sm[0]->stationary_sum);
+	fprint_vector(fp, sms[0].stationary_sum);
 	fprintf(fp, "----------\n");
-	fprintf(fp, "Posterior mean ancestral:\n");
-	for(i=0; i<6; i++) fprint_vector(fp, sm[i]->ancestral_sum);
-	fprintf(fp, "\n");
+
+	fprintf(fp, "Posterior mean uniform ancestrals:\n");
+	for(i=0; i<6; i++) fprint_vector(fp, sms[i].ancestral_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean fuzzy ancestrals:\n");
-	for(i=0; i<6; i++) fprint_matrix(fp, sm[i]->fuzz_prior_ancestral_sum);
-	fprintf(fp, "\n");
+	for(i=0; i<6; i++) fprint_vector(fp, sms[i].fuzz_prior_ancestral_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean stationary ancestrals:\n");
-	for(i=0; i<6; i++) fprint_matrix(fp, sm[i]->stationary_prior_ancestral_sum);
-	fprintf(fp, "\n");
+	for(i=0; i<6; i++) fprint_vector(fp, sms[i].stationary_prior_ancestral_sum);
 	fprintf(fp, "----------\n");
+
 	fprintf(fp, "Hypothesis probabilities:\n");
-	fprintf(fp, "SOV to SVO (over VSO): %f\n", sm[0]->statistics[SOV_TO_SVO]);
-	fprintf(fp, "SVO to SOV (over VSO): %f\n", sm[0]->statistics[SVO_TO_SOV]);
-	fprintf(fp, "VSO to SOV (over SVO): %f\n", sm[0]->statistics[VSO_TO_SOV]);
-	fprintf(fp, "SVO most stable: %f\n", sm[0]->statistics[SVO_MOST_STAB]);
+	fprintf(fp, "SOV to SVO (over VSO): %f\n", sms[0].statistics[SOV_TO_SVO]);
+	fprintf(fp, "SVO to SOV (over VSO): %f\n", sms[0].statistics[SVO_TO_SOV]);
+	fprintf(fp, "VSO to SOV (over SVO): %f\n", sms[0].statistics[VSO_TO_SOV]);
+	fprintf(fp, "SVO most stable: %f\n", sms[0].statistics[SVO_MOST_STAB]);
 //	fprintf(fp, "SOV most likely ancestor: %f\n", statistics[SOV_MOST_LIKE]);
 	fprintf(fp, "----------\n");
-	fprintf(fp, "Maximum posterior: %f\n", sm[0]->max_log_poster);
+	fprintf(fp, "Maximum posteror: %f\n", sms[0].max_log_poster);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "MAP stabilities:\n");
-	fprint_vector(fp, sm[0]->stabs_map);
+	fprint_vector(fp, sms[0].stabs_map);
 	fprintf(fp, "MAP transitions:\n");
-	fprint_matrix(fp, sm[0]->trans_map);
+	fprint_matrix(fp, sms[0].trans_map);
 	fprintf(fp, "MAP stationary:\n");
-	fprint_vector(fp, sm[0]->stationary_map);
-	fprintf(fp, "MAP ancestral word order distribution:\n");
-	for(i=1;i<6;i++) fprint_vector(fp, sm[0]->ancestral_sum);
-	fprintf(fp, "\n");
+	fprint_vector(fp, sms[0].stationary_map);
+
+	fprintf(fp, "MAP ancestral word order distributions:\n");
+	fprint_vector(fp, sms[0].ancestral_map);
 	fprintf(fp, "----------\n");
 
 	fclose(fp);

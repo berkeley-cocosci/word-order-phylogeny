@@ -41,7 +41,7 @@ leafdata_t* read_leaf_data(char* filename);
 uint8_t get_leaf_wordorder(leafdata_t* node, char* langname);
 int get_node_count(char *filename);
 void populate_nodes(node_t *nodes, leafdata_t* leafdata, char *filename);
-void load_trees(node_t **trees, char *dir, int method, int family, int treeindex, int shuffle, int multitree);
+void load_tree(node_t **tree, char *dir, int method, int family, int treeindex, int shuffle);
 void fprint_tree(FILE *fp, node_t *nodes, int length);
 void die_due_to_neg();
 void fix_negative_branches(node_t *node);

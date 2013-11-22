@@ -14,10 +14,10 @@
 #include "beliefprop.h"
 #include "gslworkspace.h"
 #include "matrix.h"
+#include "modellike.h"
 #include "tree.h"
 
 void compute_likelihood(node_t *node, double *likelihood, gslws_t *ws);
-double get_model_loglh(node_t **trees, gsl_matrix *Q, gslws_t *ws, int multitree);
 
 double get_log_prior(gsl_vector *stabs, gsl_matrix *trans) {
 	double log_prior = 0;
@@ -28,26 +28,17 @@ double get_log_prior(gsl_vector *stabs, gsl_matrix *trans) {
 	return log_prior;
 }
 
-double get_model_loglh(node_t **trees, gsl_matrix *Q, gslws_t *ws, int multitree) {
-	int i, j;
+double get_model_loglh(node_t *tree, gsl_matrix *Q, gslws_t *ws) {
+	uint8_t i;
 	double likelihood;
-	node_t *root;
 
 	// Compute eigen-things of Q
 	decompose_q(Q, ws);
-
-	for(i=0; i<6; i++) {
-		if(i>0 && multitree==0) break;
-		root = trees[i];
-		// Clean up from last time
-		reset_tree(root);
-		// Set root prior
-		for(j=0; j<6; j++) {
-			root->dist[j] = 1.0/6.0;
-		}
-
-		compute_likelihood(root, &likelihood, ws);
-	}
+	// Clean up from last time
+	reset_tree(tree);
+	// Set root prior
+	for(i=0; i<6; i++) tree->dist[i] = 1.0/6.0;
+	compute_likelihood(tree, &likelihood, ws);
 	return likelihood;
 }
 
