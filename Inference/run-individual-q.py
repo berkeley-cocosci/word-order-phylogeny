@@ -5,7 +5,7 @@ import random
 import subprocess
 import time
 
-CORES=6
+CORES=2
 
 def print_eta(initial, start, remaining, now):
     completed = initial - remaining
@@ -21,10 +21,8 @@ def print_eta(initial, start, remaining, now):
     print "Estimated time remaining: %d hours, %d minutes" % (hours, minutes)
 
 commands = []
-for treeindex in range(1,101):
-    for family in "austro afro indo niger nilo sino".split():
-        for type in "geographic genetic feature combination".split():
-            commands.append("./inference.exe -b 500 -s 5000 -t ../TreeBuilder/generated_trees/%s/%s/tree_%d.simple -l ../TreeBuilder/generated_trees/%s.leafdata -o results/individual-q/%s/%s/tree_%d" % (type, family, treeindex, family, type, family, treeindex))
+for method in range(0, 4):
+        commands.append("./inference.exe -b 50 -s 100 -l 100 -c %d" % method)
 
 initial_length = len(commands)
 start_time = time.time()

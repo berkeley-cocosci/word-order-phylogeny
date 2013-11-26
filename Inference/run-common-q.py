@@ -5,7 +5,7 @@ import random
 import subprocess
 import time
 
-CORES=6
+CORES=2
 
 def print_eta(initial, start, remaining, now):
     completed = initial - remaining
@@ -21,9 +21,8 @@ def print_eta(initial, start, remaining, now):
     print "Estimated time remaining: %d hours, %d minutes" % (hours, minutes)
 
 commands = []
-for treeindex in range(1,101):
-    for treeclass, type in enumerate("geographic genetic feature combination".split()):
-			commands.append("./inference.exe -b 500 -s 5000 -m -i %d -c %d -o results/common-q/%s/trees_%d" % (treeindex, treeclass, type, treeindex))
+for method in range(0, 4):
+    commands.append("./inference.exe -m -b 50 -s 100 -l 100 -c %d" % method)
 
 initial_length = len(commands)
 start_time = time.time()
