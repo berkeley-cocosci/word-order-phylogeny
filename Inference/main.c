@@ -208,9 +208,22 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 	fclose(logfp);
 }
 
+void usage() {
+	printf("Options:\n\n");
+	printf("	-b BURNIN		Discard BURNIN samples at start of MCMC.\n");
+	printf("	-c METHOD		Tree method: 0 is geo, 1 is gen, 2 is feat, 3 is combo.\n");
+	printf("	-l LAG			Perform LAG MCMC iterations between samples.\n");
+	printf("	-m 			Do common Q analysis (default is individual Q.\n");
+	printf("	-s SAMPLES		Take SAMPLES MCMC samples per tree.\n");
+	printf("	-S			Shuffle leaf word orders.\n");
+	printf("	-x			Split trees.\n");
+	printf("	-L			Be ridiculously verbose.\n");
+}
+
 int main(int argc, char **argv) {
 
 	// Variable setup, allocation, etc.
+	uint8_t ambiguous = 1;
 	int c;
 	int logging = 0;
 	int multitree, treeclass, shuffle, split;
@@ -234,6 +247,7 @@ int main(int argc, char **argv) {
 				break;
 			case 'c':
 				treeclass = atoi(optarg);
+				ambiguous = 0;
 				break;
 /*			case 'i':
 				treeindex = atoi(optarg);
@@ -268,14 +282,25 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	if(ambiguous) {
+		usage();
+		exit(0);
+	}
+
 	if(multitree && !split) {
+		printf("Performing inference with one Q shared among all families.\n");
 		whole_shared_q(treeclass, shuffle, burnin, samples, lag, outdir, logging);
 	} else if(multitree && split) {
 		split_shared_q(treeclass, shuffle, burnin, samples, lag, outdir, logging);
+		printf("Performing inference with one Q shared among all families, with trees split in half.\n");
 	} else if(!multitree && !split) {
+		printf("Performing inference with individual Qs per family.\n");
 		whole_indiv_q(treeclass, shuffle, burnin, samples, lag, outdir, logging);
 	} else if(!multitree && split) {
 		// Not implemented yet
+		printf("Split individual Q not implemented yet.\n");
+	} else {
+		usage();
 	}
 
 	return 0;
