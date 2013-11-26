@@ -7,9 +7,6 @@
 #include "tree.h"
 
 void initialise_sampman(sampman_t *sm, char *outdir) {
-	char mkcmd[1024];
-	sprintf(mkcmd, "mkdir -p %s", outdir);
-	system(mkcmd);
 	sm->stabs_sum = gsl_vector_alloc(6);
 	sm->stabs_map = gsl_vector_alloc(6);
 	sm->trans = gsl_matrix_alloc(6, 6);
@@ -90,6 +87,10 @@ void finish(sampman_t *sm) {
 void save_indiv_q(char *directory, sampman_t *sm) {
 	char filename[1024];
 	FILE *fp;
+	char mkcmd[1024];
+	/* Make directory */
+	sprintf(mkcmd, "mkdir -p %s", directory);
+	system(mkcmd);
 	/* Write summary file */
 	strcpy(filename, directory);
 	strcat(filename, "/summary");
@@ -144,6 +145,10 @@ void save_common_q(char *directory, sampman_t *sms) {
 	char filename[1024];
 	FILE *fp;
 	int i;
+	char mkcmd[1024];
+	/* Make directory */
+	sprintf(mkcmd, "mkdir -p %s", directory);
+	system(mkcmd);
 	/* Write summary file */
 	strcpy(filename, directory);
 	strcat(filename, "/summary");

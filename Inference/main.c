@@ -69,6 +69,8 @@ void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t 
 void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, char *outdir, int logging) {
 	FILE *logfp;
 	int treeindex, i;
+	char methods[][16] = {"geographic", "genetic", "feature", "combination" };
+	char filename[1024];
 	node_t **trees = calloc(6, sizeof(node_t*));
 	mcmc_t mcmc;
 	gslws_t *wses = calloc(6, sizeof(gslws_t));
@@ -100,7 +102,8 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 
 	// Finish up
 	for(i=0; i<6; i++) compute_means(&sms[i]);
-	save_common_q("results", sms);
+	sprintf(filename, "results/common-q/%s/", methods[method]);
+	save_common_q(filename, sms);
 	fclose(logfp);
 }
 
@@ -108,6 +111,9 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, ch
 	FILE *logfp;
 	uint8_t family;
 	int treeindex;
+	char filename[1024];
+	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
+	char types[][16] = {"geographic", "genetic", "feature", "combination" };
 	node_t *tree;
 	mcmc_t mcmc;
 	gslws_t ws;
@@ -138,7 +144,8 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, ch
 
 			// Finish up
 			compute_means(&sm);
-			save_indiv_q("results", &sm);
+			sprintf(filename, "results/individual-q/%s/%s/", types[method], families[family]);
+			save_indiv_q(filename, &sm);
 		}
 	}
 
