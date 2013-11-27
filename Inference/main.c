@@ -15,6 +15,7 @@
 #include "modellike.h"
 #include "beliefprop.h"
 #include "sampman.h"
+#include "ubertree.h"
 
 void do_single_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t *tree, gslws_t *ws, sampman_t *sm, int burnin, int samples, int lag) {
 	int i, j;
@@ -41,7 +42,7 @@ void do_single_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t *tree, gslws_t *
 	}
 }
 
-void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t *wses, sampman_t *sms, int burnin, int samples, int lag) {
+void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t *wses, sampman_t *sms, ubertree_t *ut, int burnin, int samples, int lag) {
 	int i, j;
 	/* Burn in */
 	for(i=0; i<burnin; i++) multi_tree_mcmc_iteration(logfp, mcmc, trees, wses);
@@ -63,6 +64,7 @@ void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t 
 			upwards_belprop(logfp, trees[j], mcmc->Q, &wses[j]);
 			process_sample(&sms[j], mcmc, trees[j]);
 		}
+		if(ut != NULL) update_ubertree(ut, trees, mcmc->Q, &wses[0]);
 	}
 }
 
@@ -75,6 +77,7 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 	mcmc_t mcmc;
 	gslws_t *wses = calloc(6, sizeof(gslws_t));
 	sampman_t *sms = calloc(6, sizeof(sampman_t));
+	ubertree_t ut;
 
 	// Open log file
 	if(logging) {
@@ -84,6 +87,8 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 	}
 
 	initialise_mcmc(&mcmc);
+	initialise_ubertree(&ut);
+
 	for(i=0; i<6; i++) {
 		alloc_gslws(&wses[i]);
 		initialise_sampman(&sms[i], outdir);
@@ -95,7 +100,7 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 		for(i=0; i<6; i++) load_tree(&trees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
 		/* Draw samples for this tree (set) */
 		compute_multi_tree_probabilities(&mcmc, trees, wses);
-		do_multi_tree_inference(logfp, &mcmc, trees, wses, sms, burnin, samples, lag);
+		do_multi_tree_inference(logfp, &mcmc, trees, wses, sms, &ut, burnin, samples, lag);
 		/* Free up tree memory */
 		for(i=0; i<6; i++) free(trees[i]);
 	}
@@ -104,6 +109,7 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 	for(i=0; i<6; i++) compute_means(&sms[i]);
 	sprintf(filename, "results/common-q/%s/", methods[method]);
 	save_common_q(filename, sms);
+	save_ubertree(&ut, filename);
 	fclose(logfp);
 }
 
@@ -189,8 +195,8 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 		/* Draw samples for this tree (set) */
 		compute_multi_tree_probabilities(&mcmc1, trees1, wses1);
 		compute_multi_tree_probabilities(&mcmc2, trees2, wses2);
-		do_multi_tree_inference(logfp, &mcmc1, trees1, wses1, sms1, burnin, samples, lag);
-		do_multi_tree_inference(logfp, &mcmc2, trees2, wses2, sms2, burnin, samples, lag);
+		do_multi_tree_inference(logfp, &mcmc1, trees1, wses1, sms1, NULL, burnin, samples, lag);
+		do_multi_tree_inference(logfp, &mcmc2, trees2, wses2, sms2, NULL, burnin, samples, lag);
 		/* Free up tree memory */
 		for(i=0; i<6; i++) {
 			free(trees1[i]);
