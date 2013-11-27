@@ -8,6 +8,3 @@ generate:
 
 distill:
 	gcc -g -lgsl -lgslcblas -lm distiller.c beliefprop.c matrix.c mcmc.c modellike.c -o distill.exe
-
-ubertree:
-	gcc -g -lgsl -lgslcblas -lm ubertree.c beliefprop.c matrix.c mcmc.c modellike.c -o ubertree.exe
