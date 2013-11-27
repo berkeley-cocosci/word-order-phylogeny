@@ -430,14 +430,15 @@ node_t *build_tree(char *treefile, char *leaffile, int shuffle_leaves, gsl_rng *
 			}
 		}
 	}
-	printf("Maximum distance from root is %f\n", maxlength);
-	printf("About to return this: %p\n", &nodes[0]);
+	//printf("Maximum distance from root is %f\n", maxlength);
+	//printf("About to return this: %p\n", &nodes[0]);
 	return &nodes[0];
 }
 
 void load_tree(node_t **tree, char *dir, int method, int family, int treeindex, int shuffle) {
 	unsigned long int seed;
 	FILE *fp;
+	float age;
 	char treefile[1024];
 	char leaffile[1024];
 	char families[][16] = {"indo", "austro", "niger", "afro", "nilo", "sino"};
@@ -452,5 +453,12 @@ void load_tree(node_t **tree, char *dir, int method, int family, int treeindex, 
 	sprintf(treefile, "%s/%s/%s/tree_%d.simple", dir, types[method], families[family], treeindex+1);
 	sprintf(leaffile, "../TreeBuilder/generated_trees/%s.leafdata", families[family]);
 	(*tree) = build_tree(treefile, leaffile, shuffle, rng);
+	// Load age
+	sprintf(treefile, "%s/%s/%s/tree_%d.age", dir, types[method], families[family], treeindex+1);
+	fp = fopen(treefile, "r");
+	fscanf(fp, "%f\n", &age);
+	fclose(fp);
+	(*tree)->age = age;
+	// Reset
 	reset_tree(*tree);
 }

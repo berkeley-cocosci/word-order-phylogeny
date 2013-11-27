@@ -20,6 +20,7 @@ struct node{
 	float left_branch;
 	float right_branch;
 	float distance_from_root;
+	double age;
 	struct node *parent;
 	struct node *left_child;
 	struct node *right_child;
