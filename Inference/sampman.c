@@ -7,8 +7,10 @@
 #include "tree.h"
 
 void initialise_sampman(sampman_t *sm, char *outdir) {
+	int i;
 	sm->stabs_sum = gsl_vector_alloc(6);
 	sm->stabs_map = gsl_vector_alloc(6);
+	for(i=0; i<500; i++) sm->stabs_log[i] = gsl_vector_alloc(6);
 	sm->trans = gsl_matrix_alloc(6, 6);
 	sm->trans_sum = gsl_matrix_alloc(6, 6);
 	sm->trans_map = gsl_matrix_alloc(6, 6);
@@ -77,7 +79,12 @@ void process_sample(sampman_t *sm, mcmc_t *mcmc, node_t *tree) {
 		gsl_matrix_add(sm->Q_sum, mcmc->Q);
 		for(i=0;i<6;i++) gsl_vector_set(sm->ancestral_map, i, tree->dist[i]);
 	}
+	if(gsl_rng_uniform_int(mcmc->r, 100) <= 1) {
+		gsl_vector_memcpy(sm->stabs_log[sm->stabs_log_pointer], mcmc->stabs);
+		sm->stabs_log_pointer++;
+	}
 }
+
 
 void finish(sampman_t *sm) {
 	printf("Mean Q is:\n");
@@ -201,5 +208,12 @@ void save_common_q(char *directory, sampman_t *sms) {
 	fprint_vector(fp, sms[0].ancestral_map);
 	fprintf(fp, "----------\n");
 
+	fclose(fp);
+
+	/* Save logged stability vectors */
+	strcpy(filename, directory);
+	strcat(filename, "/stabilities");
+	fp = fopen(filename, "w");
+		for(i=0; i<sms[0].stabs_log_pointer; i++) fprint_vector(fp, sms[0].stabs_log[i]);
 	fclose(fp);
 }
