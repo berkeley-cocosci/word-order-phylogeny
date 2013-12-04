@@ -20,6 +20,7 @@ struct gslws {
 	gsl_matrix_complex *evecs_copy;
 	gsl_permutation *perm;
 	gsl_eigen_nonsymmv_workspace *eigenws;
+	gsl_vector *tempvec1, *tempvec2;
 };
 typedef struct gslws gslws_t;
 
