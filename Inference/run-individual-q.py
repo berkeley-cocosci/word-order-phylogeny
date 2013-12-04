@@ -22,7 +22,7 @@ def print_eta(initial, start, remaining, now):
 
 commands = []
 for method in range(0, 4):
-        commands.append("./inference.exe -b 50 -s 100 -l 100 -c %d" % method)
+        commands.append("./inference.exe -b 500 -s 1000 -l 100 -c %d" % method)
 
 initial_length = len(commands)
 start_time = time.time()
