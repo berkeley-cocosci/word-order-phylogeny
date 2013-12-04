@@ -38,7 +38,7 @@ void do_single_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t *tree, gslws_t *
 		upwards_belprop(logfp, tree, mcmc->Q, ws);
 
 		/* Record sample */
-		process_sample(sm, mcmc, tree);
+		process_sample(sm, mcmc, ws, tree);
 	}
 }
 
@@ -62,7 +62,7 @@ void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t 
 		build_q(mcmc);
 		for(j=0; j<6; j++) {
 			upwards_belprop(logfp, trees[j], mcmc->Q, &wses[j]);
-			process_sample(&sms[j], mcmc, trees[j]);
+			process_sample(&sms[j], mcmc, &wses[j], trees[j]);
 		}
 		if(ut != NULL) update_ubertree(ut, trees, mcmc->Q, &wses[0]);
 	}
@@ -133,11 +133,12 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, ch
 	}
 
 	initialise_mcmc(&mcmc);
+	initialise_sampman(&sm, outdir);
 	alloc_gslws(&ws);
 
 	// Loop over families
 	for(family=0; family<6; family++) {
-		initialise_sampman(&sm, outdir);
+		reset_sampman(&sm);
 		// Loop over trees
 		for(treeindex=0; treeindex<5; treeindex++) {
 			/* Build tree */
@@ -147,12 +148,12 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, ch
 			do_single_tree_inference(logfp, &mcmc, tree, &ws, &sm, burnin, samples, lag);
 			/* Free up tree memory */
 			free(tree);
-
-			// Finish up
-			compute_means(&sm);
-			sprintf(filename, "results/individual-q/%s/%s/", types[method], families[family]);
-			save_indiv_q(filename, &sm);
 		}
+
+		// Finish up
+		compute_means(&sm);
+		sprintf(filename, "results/individual-q/%s/%s/", types[method], families[family]);
+		save_indiv_q(filename, &sm);
 	}
 
 	fclose(logfp);
