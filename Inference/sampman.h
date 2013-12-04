@@ -1,5 +1,6 @@
 #include<gsl/gsl_vector.h>
 #include<gsl/gsl_matrix.h>
+#include "gslworkspace.h"
 #include "tree.h"
 
 #define SOV_TO_SVO 0
@@ -28,8 +29,8 @@ struct sampman{
 	gsl_vector *stationary_map;
 	gsl_vector *ancestral_sum;
 	gsl_vector *ancestral_map;
-	gsl_vector *fuzz_prior_ancestral_sum;
-	gsl_vector *fuzz_prior_ancestral_map;
+	gsl_vector *sliding_prior_ancestral_sum[100];
+	gsl_vector *sliding_prior_ancestral_map[100];
 	gsl_vector *stationary_prior_ancestral_sum;
 	gsl_vector *stationary_prior_ancestral_map;
 	float statistics[20];
@@ -39,8 +40,8 @@ typedef struct sampman sampman_t;
 
 void initialise_sampman(sampman_t *sm, char *outdir);
 void compute_means(sampman_t *sm);
-void reset_summary(sampman_t *sm);
-void process_sample(sampman_t *sm, mcmc_t *mcmc, node_t *tree);
+void reset_sampman(sampman_t *sm);
+void process_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws, node_t *tree);
 void finish(sampman_t *sm);
 void save_common_q(char *directory, sampman_t *sms);
 void save_indiv_q(char *directory, sampman_t *sm);
