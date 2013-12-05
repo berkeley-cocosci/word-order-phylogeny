@@ -68,7 +68,7 @@ void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t 
 	}
 }
 
-void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, char *outdir, int logging) {
+void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, int treecount, char *outdir, int logging) {
 	FILE *logfp;
 	int treeindex, i;
 	char methods[][16] = {"geographic", "genetic", "feature", "combination" };
@@ -95,7 +95,7 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 	}
 
 	// Loop over trees...
-	for(treeindex=0; treeindex<5; treeindex++) {
+	for(treeindex=0; treeindex<treecount; treeindex++) {
 		/* Build tree(s) */
 		for(i=0; i<6; i++) load_tree(&trees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
 		/* Draw samples for this tree (set) */
@@ -113,7 +113,7 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 	fclose(logfp);
 }
 
-void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, char *outdir, int logging) {
+void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, int treecount, char *outdir, int logging) {
 	FILE *logfp;
 	uint8_t family;
 	int treeindex;
@@ -140,7 +140,7 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, ch
 	for(family=0; family<6; family++) {
 		reset_sampman(&sm);
 		// Loop over trees
-		for(treeindex=0; treeindex<5; treeindex++) {
+		for(treeindex=0; treeindex<treecount; treeindex++) {
 			/* Build tree */
 			load_tree(&tree, "../TreeBuilder/generated_trees/whole/", method, family, treeindex, shuffle);
 			/* Draw samples for this tree (set) */
@@ -159,7 +159,7 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, ch
 	fclose(logfp);
 }
 
-void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, char *outdir, int logging) {
+void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, int treecount, char *outdir, int logging) {
 	FILE *logfp;
 	int treeindex, i;
 	node_t **trees1 = calloc(6, sizeof(node_t*));
@@ -187,7 +187,7 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, c
 	}
 
 	// Loop over trees...
-	for(treeindex=0; treeindex<5; treeindex++) {
+	for(treeindex=0; treeindex<treecount; treeindex++) {
 		/* Build tree(s) */
 		for(i=0; i<6; i++) {
 			load_tree(&trees1[i], "../TreeBuilder/generated_trees/split/1/", method, i, treeindex, shuffle);
@@ -236,6 +236,7 @@ int main(int argc, char **argv) {
 	int multitree, treeclass, shuffle, split;
 	char *outdir;
 	int burnin, lag, samples;
+	int treecount;
 
 	// Option parsing
 	// defaults
@@ -246,6 +247,7 @@ int main(int argc, char **argv) {
 	burnin = 5000;
 	lag = 100;
 	samples = 1000;
+	treecount = 100;
 	outdir = ".";
 	while((c = getopt(argc, argv, "b:c:i:l:ms:St:o:Lx")) != -1) {
 		switch(c) {
@@ -275,11 +277,9 @@ int main(int argc, char **argv) {
 			case 'x':
 				split = 1;
 				break;
-				/*
 			case 't':
-				treefile = optarg;
+				treecount = atoi(optarg);
 				break;
-				*/
 			case 'o':
 				outdir = optarg;
 				break;
@@ -296,13 +296,13 @@ int main(int argc, char **argv) {
 
 	if(multitree && !split) {
 		printf("Performing inference with one Q shared among all families.\n");
-		whole_shared_q(treeclass, shuffle, burnin, samples, lag, outdir, logging);
+		whole_shared_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
 	} else if(multitree && split) {
-		split_shared_q(treeclass, shuffle, burnin, samples, lag, outdir, logging);
+		split_shared_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
 		printf("Performing inference with one Q shared among all families, with trees split in half.\n");
 	} else if(!multitree && !split) {
 		printf("Performing inference with individual Qs per family.\n");
-		whole_indiv_q(treeclass, shuffle, burnin, samples, lag, outdir, logging);
+		whole_indiv_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
 	} else if(!multitree && split) {
 		// Not implemented yet
 		printf("Split individual Q not implemented yet.\n");
