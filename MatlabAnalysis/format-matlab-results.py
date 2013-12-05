@@ -1,29 +1,18 @@
 import random
 import itertools
 
-def load_stabilities(basename, multitree=False):
+def load_stabilities(filename):
     # If we load ALL the stability samples, we get an absurd
     # amount.  So let's randomly sample from 10 trees and then
     # take a random subsample of 500 points
-    stabs = []
-    trees = random.sample(range(1,101), 10)
-    for i in trees:
-        if multitree:
-            filename = basename + "/trees_%d/samples" % i
-        else:
-            filename = basename + "/tree_%d/samples" % i
-        fp = open(filename, "r")
-        lines = fp.readlines()
-        for line in [lines[x] for x in range(2,len(lines),10)]:
-            stabs.append(map(float, line.strip().split()))
-        fp.close()
-    stabs = random.sample(stabs, 500)
+    with open(filename, "r") as fp:
+        stabs = [map(float, line) for line in [x.strip().split() for x in fp.readlines()]]
     return stabs
     
-def parse_ubertree():
+def parse_ubertree(filename):
     ages = []
     dists = []
-    fp = open("../Inference/ubertree_dists", "r")
+    fp = open(filename, "r")
     for line in fp:
         age, dist = line.strip().split(",",1)
         ages.append(float(age))
@@ -120,6 +109,8 @@ def main():
 
     for method in "geographic genetic feature combination".split():
 
+        # SLIDING PRIOR STUFF
+
         sliding_priors = parse_sliding_prior_file(method, multitree=False)
         for family in "afro austro indo niger nilo sino".split():
             fp.write("indiv_sliding_priors('%s_%s') = %s;\n" % (method, family, format_matrix(sliding_priors[family])))
@@ -128,20 +119,23 @@ def main():
         for family in "afro austro indo niger nilo sino".split():
             fp.write("multi_sliding_priors('%s_%s') = %s;\n" % (method, family, format_matrix(sliding_priors[family])))
 
+        # INDIVIDUAL Q
         for family in "afro austro indo niger nilo sino".split():
             summary = parse_summary_file("../Inference/results/individual-q/%s/%s/summary" % (method, family))
             fp.write(format_summary(summary, method, family))
-
-            stabs = load_stabilities("../Inference/results/individual-q/%s/%s/" % (method, family))
+            stabs = load_stabilities("../Inference/results/individual-q/%s/%s/stabilities" % (method, family))
             fp.write("all_stabs('%s_%s') = %s;\n" % (method, family, format_matrix(stabs)))
+
+        # COMMON Q
+
         summary = parse_summary_file("../Inference/results/common-q/%s/summary" % (method,), multitree=True)
         fp.write(format_summary(summary, method))
-
-        stabs = load_stabilities("../Inference/results/common-q/%s/" % (method,), multitree=True)
+        stabs = load_stabilities("../Inference/results/common-q/%s/stabilities" % (method,))
         fp.write("all_stabs('%s') = %s;\n" % (method, format_matrix(stabs)))
         
 
-    ages, dists = parse_ubertree()
+    # UBER TREE
+    ages, dists = parse_ubertree("../Inference/results/common-q/combination/common_ancestor")
     fp.write("common_ancestor_ages = %s;\n" % format_vector(ages))
     fp.write("common_ancestor_dists = %s;\n" % format_matrix(dists))
 
