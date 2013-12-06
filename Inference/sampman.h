@@ -6,8 +6,9 @@
 #define SOV_TO_SVO 0
 #define SVO_TO_SOV 1
 #define VSO_TO_SOV 2
-#define SVO_MOST_STAB 3
-#define SOV_MOST_LIKE 4
+#define SOV_MOST_STAB 3
+#define SVO_MOST_STAB 4
+#define VSO_MOST_STAB 5
 
 struct sampman{
 	int sample_count;
@@ -33,6 +34,7 @@ struct sampman{
 	gsl_vector *sliding_prior_ancestral_map[100];
 	gsl_vector *stationary_prior_ancestral_sum;
 	gsl_vector *stationary_prior_ancestral_map;
+	gsl_vector *evidence_sum;
 	float statistics[20];
 	char families[][16];
 };

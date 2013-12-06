@@ -1,5 +1,6 @@
-#include<gsl/gsl_vector.h>
-#include<gsl/gsl_matrix.h>
+#include <math.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
 
 #include "matrix.h"
 #include "mcmc.h"
@@ -26,6 +27,7 @@ void initialise_sampman(sampman_t *sm, char *outdir) {
 	sm->stationary_prior_ancestral_map = gsl_vector_alloc(6);
 	for(i=0; i<100; i++) sm->sliding_prior_ancestral_sum[i] = gsl_vector_alloc(6);
 //	sm->sliding_prior_ancestral_map = calloc(100, sizeof(gsl_matrix*));
+	sm->evidence_sum = gsl_vector_alloc(6);
 }
 
 void reset_sampman(sampman_t *sm) {
@@ -49,6 +51,7 @@ void reset_sampman(sampman_t *sm) {
 	sm->max_log_poster = -1000000000;
 	for(i=0; i<100; i++) gsl_vector_set_zero(sm->sliding_prior_ancestral_sum[i]);
 	//for(i=0; i<100; i++) gsl_vector_set_zero(sm->sliding_prior_ancestral_map[i]);
+	gsl_vector_set_zero(sm->evidence_sum);
 }
 
 void compute_means(sampman_t *sm) {
@@ -64,6 +67,7 @@ void compute_means(sampman_t *sm) {
 	printf("%d\n", sm->sample_count);
 	gsl_vector_scale(sm->stationary_prior_ancestral_sum, 1.0 / sm->sample_count);
 	fprint_vector(stdout, sm->stationary_prior_ancestral_sum);
+	gsl_vector_scale(sm->evidence_sum, 1.0 / sm->sample_count);
 	for(i=0;i<10;i++) sm->statistics[i] /= sm->sample_count;
 }
 
@@ -136,7 +140,20 @@ void process_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws, node_t *tree) {
 	if(gsl_matrix_get(mcmc->trans, 0, 1) > gsl_matrix_get(mcmc->trans, 0, 2)) sm->statistics[SOV_TO_SVO]++;
 	if(gsl_matrix_get(mcmc->trans, 1, 0) > gsl_matrix_get(mcmc->trans, 1, 2)) sm->statistics[SVO_TO_SOV]++;
 	if(gsl_matrix_get(mcmc->trans, 2, 0) > gsl_matrix_get(mcmc->trans, 2, 1)) sm->statistics[VSO_TO_SOV]++;
+	if(gsl_vector_min_index(mcmc->stabs) == 0)  sm->statistics[SOV_MOST_STAB]++;
 	if(gsl_vector_min_index(mcmc->stabs) == 1)  sm->statistics[SVO_MOST_STAB]++;
+	if(gsl_vector_min_index(mcmc->stabs) == 2)  sm->statistics[VSO_MOST_STAB]++;
+	// Evidence
+	gsl_vector_set_zero(ws->tempvec1);
+	for(i=0; i<6; i++) {
+		norm = 0;
+		for(j=0; j<6; j++) {
+			if(j != i) norm += tree->dist[j]*(1.0/5.0);
+		}
+		gsl_vector_set(ws->tempvec1, i, log(tree->dist[i] / norm));
+		gsl_vector_add(sm->evidence_sum, ws->tempvec1);
+	}
+
 }
 
 void finish(sampman_t *sm) {
@@ -180,6 +197,9 @@ void save_indiv_q(char *directory, sampman_t *sm) {
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean stationary ancestrals:\n");
 	fprint_vector(fp, sm->stationary_prior_ancestral_sum);
+	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean ancestry evidence:\n");
+	fprint_vector(fp, sm->evidence_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Hypothesis probabilities:\n");
 	fprintf(fp, "SOV to SVO (over VSO): %f\n", sm->statistics[SOV_TO_SVO]);
@@ -255,13 +275,18 @@ void save_common_q(char *directory, sampman_t *sms) {
 	fprintf(fp, "Posterior mean stationary ancestrals:\n");
 	for(i=0; i<6; i++) fprint_vector(fp, sms[i].stationary_prior_ancestral_sum);
 	fprintf(fp, "----------\n");
+	fprintf(fp, "Posterior mean ancestry evidence:\n");
+	for(i=0; i<6; i++) fprint_vector(fp, sms[i].evidence_sum);
+	fprintf(fp, "----------\n");
 
 	fprintf(fp, "Hypothesis probabilities:\n");
 	fprintf(fp, "SOV to SVO (over VSO): %f\n", sms[0].statistics[SOV_TO_SVO]);
 	fprintf(fp, "SVO to SOV (over VSO): %f\n", sms[0].statistics[SVO_TO_SOV]);
 	fprintf(fp, "VSO to SOV (over SVO): %f\n", sms[0].statistics[VSO_TO_SOV]);
+	fprintf(fp, "SOV most stable: %f\n", sms[0].statistics[SOV_MOST_STAB]);
 	fprintf(fp, "SVO most stable: %f\n", sms[0].statistics[SVO_MOST_STAB]);
-//	fprintf(fp, "SOV most likely ancestor: %f\n", statistics[SOV_MOST_LIKE]);
+	fprintf(fp, "VSO most stable: %f\n", sms[0].statistics[VSO_MOST_STAB]);
+//	fprintf(fp, "SOV most likely ancestor: %f\n", statistics[VSO_MOST_LIKE]);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Maximum posteror: %f\n", sms[0].max_log_poster);
 	fprintf(fp, "----------\n");
