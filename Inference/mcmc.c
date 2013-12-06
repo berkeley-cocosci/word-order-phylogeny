@@ -290,7 +290,7 @@ void multi_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, gslws_t *
 	// Compute new posterior and accept or reject
 	new_log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
 	new_log_lh = 0;
-	for(i=0; i<6; i++) new_log_lh += get_model_loglh(trees[i], mcmc->Q, &wses[i]);
+	for(i=0; i<6; i++) new_log_lh += get_model_loglh(trees[i], mcmc->Q_dash, &wses[i]);
 	new_log_poster = new_log_prior + new_log_lh;
 	accept_or_reject(fp, mcmc, new_log_prior, new_log_lh, new_log_poster);
 }
