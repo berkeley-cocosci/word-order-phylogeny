@@ -107,7 +107,7 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 
 	// Finish up
 	for(i=0; i<6; i++) compute_means(&sms[i]);
-	sprintf(filename, "results/common-q/%s/", methods[method]);
+	sprintf(filename, "%s/%s/", outdir, methods[method]);
 	save_common_q(filename, sms);
 	save_ubertree(&ut, filename);
 	fclose(logfp);
@@ -152,7 +152,7 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, in
 
 		// Finish up
 		compute_means(&sm);
-		sprintf(filename, "results/individual-q/%s/%s/", types[method], families[family]);
+		sprintf(filename, "%s/%s/%s/", outdir, types[method], families[family]);
 		save_indiv_q(filename, &sm);
 	}
 
@@ -162,6 +162,8 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, in
 void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, int treecount, char *outdir, int logging) {
 	FILE *logfp;
 	int treeindex, i;
+	char filename[1024];
+	char methods[][16] = {"geographic", "genetic", "feature", "combination" };
 	node_t **trees1 = calloc(6, sizeof(node_t*));
 	node_t **trees2 = calloc(6, sizeof(node_t*));
 	mcmc_t mcmc1, mcmc2;
@@ -210,8 +212,12 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 		compute_means(&sms1[i]);
 		compute_means(&sms2[i]);
 	}
-	save_common_q("results", sms1);
-	save_common_q("results", sms2);
+	sprintf(filename, "%s/%s/", outdir, methods[method]);
+	strcat(filename, "/left-half/");
+	save_common_q(filename, sms1);
+	sprintf(filename, "%s/%s/", outdir, methods[method]);
+	strcat(filename, "/right-half/");
+	save_common_q(filename, sms2);
 	fclose(logfp);
 }
 
@@ -234,7 +240,8 @@ int main(int argc, char **argv) {
 	int c;
 	int logging = 0;
 	int multitree, treeclass, shuffle, split;
-	char *outdir;
+	char *outbase;
+	char outdir[1024];
 	int burnin, lag, samples;
 	int treecount;
 
@@ -248,7 +255,7 @@ int main(int argc, char **argv) {
 	lag = 100;
 	samples = 1000;
 	treecount = 100;
-	outdir = ".";
+	outbase = "./results";
 	while((c = getopt(argc, argv, "b:c:i:l:ms:St:o:Lx")) != -1) {
 		switch(c) {
 			case 'b':
@@ -281,7 +288,7 @@ int main(int argc, char **argv) {
 				treecount = atoi(optarg);
 				break;
 			case 'o':
-				outdir = optarg;
+				outbase = optarg;
 				break;
 			case 'L':
 				logging = 1;
@@ -296,13 +303,34 @@ int main(int argc, char **argv) {
 
 	if(multitree && !split) {
 		printf("Performing inference with one Q shared among all families.\n");
+		sprintf(outdir, outbase);
+		strcat(outdir, "/common-q/unsplit/");
+		if(shuffle) {
+			strcat(outdir, "/shuffled/");
+		} else {
+			strcat(outdir, "/unshuffled/");
+		}
 		whole_shared_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
 	} else if(multitree && split) {
-		split_shared_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
 		printf("Performing inference with one Q shared among all families, with trees split in half.\n");
+		sprintf(outdir, outbase);
+		strcat(outdir, "/common-q/split/");
+		if(shuffle) {
+			strcat(outdir, "/shuffled/");
+		} else {
+			strcat(outdir, "/unshuffled/");
+		}
+		split_shared_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
 	} else if(!multitree && !split) {
 		printf("Performing inference with individual Qs per family.\n");
+		sprintf(outdir, outbase);
+		strcat(outdir, "/individual-q/unsplit/");
 		whole_indiv_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
+		if(shuffle) {
+			strcat(outdir, "/shuffled/");
+		} else {
+			strcat(outdir, "/unshuffled/");
+		}
 	} else if(!multitree && split) {
 		// Not implemented yet
 		printf("Split individual Q not implemented yet.\n");
