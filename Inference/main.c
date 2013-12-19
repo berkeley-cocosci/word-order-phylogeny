@@ -325,12 +325,12 @@ int main(int argc, char **argv) {
 		printf("Performing inference with individual Qs per family.\n");
 		sprintf(outdir, outbase);
 		strcat(outdir, "/individual-q/unsplit/");
-		whole_indiv_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
 		if(shuffle) {
 			strcat(outdir, "/shuffled/");
 		} else {
 			strcat(outdir, "/unshuffled/");
 		}
+		whole_indiv_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
 	} else if(!multitree && split) {
 		// Not implemented yet
 		printf("Split individual Q not implemented yet.\n");
