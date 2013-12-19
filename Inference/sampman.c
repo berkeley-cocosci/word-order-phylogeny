@@ -9,6 +9,9 @@
 
 void initialise_sampman(sampman_t *sm, char *outdir) {
 	int i;
+	sm->sample_count = 0;
+	sm->max_log_lh = -1000000000;
+	sm->max_log_poster = -1000000000;
 	sm->stabs_sum = gsl_vector_alloc(6);
 	sm->stabs_map = gsl_vector_alloc(6);
 	for(i=0; i<500; i++) sm->stabs_log[i] = gsl_vector_alloc(6);
