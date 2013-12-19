@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import random
 import itertools
 
@@ -25,7 +26,7 @@ def parse_sliding_prior_file(method="combination", multitree=False):
     if multitree:
         for family in "afro austro indo niger nilo sino".split():
             posteriors[family] = []
-        fp = open("../Inference/results/common-q/%s/sliding_prior" % (method), "r")
+        fp = open("../Inference/results/common-q/unsplit/unshuffled/%s/sliding_prior" % (method), "r")
 
         for family, line in zip(itertools.cycle("afro austro indo niger nilo sino junk".split()), fp.readlines()):
             if family != "junk":
@@ -34,7 +35,7 @@ def parse_sliding_prior_file(method="combination", multitree=False):
     else:
         for family in "afro austro indo niger nilo sino".split():
             posteriors[family] = []
-            fp = open("../Inference/results/individual-q/%s/%s/sliding_prior" % (method, family), "r")
+            fp = open("../Inference/results/individual-q/unsplit/unshuffled/%s/%s/sliding_prior" % (method, family), "r")
             for line in fp.readlines():
                 posteriors[family].append(map(float, line.strip().split()))
             fp.close()
@@ -121,21 +122,21 @@ def main():
 
         # INDIVIDUAL Q
         for family in "afro austro indo niger nilo sino".split():
-            summary = parse_summary_file("../Inference/results/individual-q/%s/%s/summary" % (method, family))
+            summary = parse_summary_file("../Inference/results/individual-q/unsplit/unshuffled/%s/%s/summary" % (method, family))
             fp.write(format_summary(summary, method, family))
-            stabs = load_stabilities("../Inference/results/individual-q/%s/%s/stabilities" % (method, family))
+            stabs = load_stabilities("../Inference/results/individual-q/unsplit/unshuffled/%s/%s/stabilities" % (method, family))
             fp.write("all_stabs('%s_%s') = %s;\n" % (method, family, format_matrix(stabs)))
 
         # COMMON Q
 
-        summary = parse_summary_file("../Inference/results/common-q/%s/summary" % (method,), multitree=True)
+        summary = parse_summary_file("../Inference/results/common-q/unsplit/unshuffled/%s/summary" % (method,), multitree=True)
         fp.write(format_summary(summary, method))
-        stabs = load_stabilities("../Inference/results/common-q/%s/stabilities" % (method,))
+        stabs = load_stabilities("../Inference/results/common-q/unsplit/unshuffled/%s/stabilities" % (method,))
         fp.write("all_stabs('%s') = %s;\n" % (method, format_matrix(stabs)))
         
 
     # UBER TREE
-    ages, dists = parse_ubertree("../Inference/results/common-q/combination/common_ancestor")
+    ages, dists = parse_ubertree("../Inference/results/common-q/unsplit/unshuffled/combination/common_ancestor")
     fp.write("common_ancestor_ages = %s;\n" % format_vector(ages))
     fp.write("common_ancestor_dists = %s;\n" % format_matrix(dists))
 
