@@ -102,8 +102,8 @@ void process_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws, node_t *tree) {
 	if(mcmc->log_lh > sm->max_log_lh) {
 		sm->max_log_lh = mcmc->log_lh;
 	}
-	// Take random stability samples
-	if(gsl_rng_uniform_int(mcmc->r, 100) <= 1) {
+	// Take stability samples at appropriate rate
+	if(sm->sample_count % sm->stability_sampling_rate == 0) {
 		gsl_vector_memcpy(sm->stabs_log[sm->stabs_log_pointer], mcmc->stabs);
 		sm->stabs_log_pointer++;
 		if(sm->stabs_log_pointer == 500) sm->stabs_log_pointer = 0;

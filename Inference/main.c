@@ -92,6 +92,7 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	for(i=0; i<6; i++) {
 		alloc_gslws(&wses[i]);
 		initialise_sampman(&sms[i], outdir);
+		sms[i].stability_sampling_rate = (treecount*samples) / 500;
 	}
 
 	// Loop over trees...
@@ -135,6 +136,8 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, in
 	initialise_mcmc(&mcmc);
 	initialise_sampman(&sm, outdir);
 	alloc_gslws(&ws);
+	// Compute stability sampling rate
+	sm.stability_sampling_rate = (treecount*samples) / 500;
 
 	// Loop over families
 	for(family=0; family<6; family++) {
@@ -186,6 +189,9 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 		alloc_gslws(&wses2[i]);
 		initialise_sampman(&sms1[i], outdir);
 		initialise_sampman(&sms2[i], outdir);
+		// Compute stability sampling rate
+		sms1[i].stability_sampling_rate = (treecount*samples) / 500;
+		sms2[i].stability_sampling_rate = (treecount*samples) / 500;
 	}
 
 	// Loop over trees...
