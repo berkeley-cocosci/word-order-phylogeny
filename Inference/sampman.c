@@ -48,6 +48,7 @@ void reset_sampman(sampman_t *sm) {
 	gsl_vector_set_zero(sm->stationary_prior_ancestral_map);
 	for(i=0;i<10;i++) sm->statistics[i] = 0.0;
 	sm->sample_count = 0;
+	sm->max_log_lh = -1000000000;
 	sm->max_log_poster = -1000000000;
 	for(i=0; i<100; i++) gsl_vector_set_zero(sm->sliding_prior_ancestral_sum[i]);
 	//for(i=0; i<100; i++) gsl_vector_set_zero(sm->sliding_prior_ancestral_map[i]);
@@ -98,10 +99,14 @@ void process_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws, node_t *tree) {
 		compute_p(ws, 0.1);
 		gsl_matrix_memcpy(sm->P_map, ws->P);
 	}
+	if(mcmc->log_lh > sm->max_log_lh) {
+		sm->max_log_lh = mcmc->log_lh;
+	}
 	// Take random stability samples
 	if(gsl_rng_uniform_int(mcmc->r, 100) <= 1) {
 		gsl_vector_memcpy(sm->stabs_log[sm->stabs_log_pointer], mcmc->stabs);
 		sm->stabs_log_pointer++;
+		if(sm->stabs_log_pointer == 500) sm->stabs_log_pointer = 0;
 	}
 
 	// Stationary prior
@@ -208,7 +213,8 @@ void save_indiv_q(char *directory, sampman_t *sm) {
 	fprintf(fp, "SVO most stable: %f\n", sm->statistics[SVO_MOST_STAB]);
 //	fprintf(fp, "SOV most likely ancestor: %f\n", statistics[SOV_MOST_LIKE]);
 	fprintf(fp, "----------\n");
-	fprintf(fp, "Maximum posterior: %f\n", sm->max_log_poster);
+	fprintf(fp, "Maximum log likelihood: %f\n", sm->max_log_lh);
+	fprintf(fp, "Maximum log posterior: %f\n", sm->max_log_poster);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "MAP stabilities:\n");
 	fprint_vector(fp, sm->stabs_map);
@@ -288,7 +294,8 @@ void save_common_q(char *directory, sampman_t *sms) {
 	fprintf(fp, "VSO most stable: %f\n", sms[0].statistics[VSO_MOST_STAB]);
 //	fprintf(fp, "SOV most likely ancestor: %f\n", statistics[VSO_MOST_LIKE]);
 	fprintf(fp, "----------\n");
-	fprintf(fp, "Maximum posteror: %f\n", sms[0].max_log_poster);
+	fprintf(fp, "Maximum log likelihood: %f\n", sms[0].max_log_lh);
+	fprintf(fp, "Maximum log posteror: %f\n", sms[0].max_log_poster);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "MAP stabilities:\n");
 	fprint_vector(fp, sms[0].stabs_map);

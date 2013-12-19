@@ -15,6 +15,7 @@ struct sampman{
 	int stabs_log_pointer;
 	int multitree;
 	FILE *samplesfp, *ancestralsfp;
+	double max_log_lh;
 	double max_log_poster;
 	gsl_vector *stabs_sum;
 	gsl_vector *stabs_map;
