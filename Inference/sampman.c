@@ -109,7 +109,6 @@ void process_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws, node_t *tree) {
 	if(sm->sample_count % sm->stability_sampling_rate == 0) {
 		gsl_vector_memcpy(sm->stabs_log[sm->stabs_log_pointer], mcmc->stabs);
 		sm->stabs_log_pointer++;
-		if(sm->stabs_log_pointer == 500) sm->stabs_log_pointer = 0;
 	}
 
 	// Stationary prior
