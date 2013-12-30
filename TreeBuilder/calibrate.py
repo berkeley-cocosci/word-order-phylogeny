@@ -76,6 +76,13 @@ class Calibrator:
     def find_common_langs(self):
         self.common_austro_langs = filter(lambda(x): x in self.auth_austro_trans, self.wals_austro_trans)
         self.common_indo_langs = filter(lambda(x): x in self.auth_indo_trans, self.wals_indo_trans)
+        if len(self.common_austro_langs) > len(self.common_indo_langs):
+            random.shuffle(self.common_austro_langs)
+            self.common_austro_langs = self.common_austro_langs[0:len(self.common_indo_langs)]
+        else:
+            random.shuffle(self.common_indo_langs)
+            self.common_indo_langs = self.common_indo_langs[0:len(self.common_austro_langs)]
+        assert len(self.common_austro_langs) == len(self.common_indo_langs)
 
     def compute_auth_vector(self, tree, common_langs, trans):
         matrix = dendropy.treecalc.PatristicDistanceMatrix(tree)
