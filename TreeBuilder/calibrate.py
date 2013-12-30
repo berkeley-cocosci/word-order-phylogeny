@@ -125,30 +125,34 @@ class Calibrator:
         return self.fit_models(method_austro_vector, method_indo_vector, label)
 
     def fit_models(self, method_austro_vector, method_indo_vector, label=None):
-
+        """
+        Fit a model to the authoritative data for both reference language
+        families and return a 3-tuple of the model, the Austronesian correlation
+        and the Indo-European correlation
+        """
+        # Fit the model to the combined authoritative data
         df = {}
         df["auth"] = self.auth_combo_vector
         df["method"] = np.concatenate([method_austro_vector, method_indo_vector])
-        df = pd.DataFrame(df)
-        combined_model = smf.ols('auth ~ method', data=df).fit()
-        predictions = combined_model.predict(df)
-        df["fit"] = predictions
+        DF = pd.DataFrame(df)
+        combined_model = smf.ols('auth ~ method', data=DF).fit()
         if label:
             df.to_csv("calibration_results/%s_data.csv" % label)
 
-        df = {}
-        df["auth"] = self.auth_austro_vector
+        # Get predictions for Austronesian, and compare to authoritative
+        df.pop("auth")
         df["method"] = method_austro_vector
-        df = pd.DataFrame(df)
-        austro_model = smf.ols('auth ~ method', data=df).fit()
+        DF = pd.DataFrame(df)
+        combo_austro_predictions = combined_model.predict(DF)
+        austro_correl = np.corrcoef(combo_austro_predictions, self.auth_austro_vector)[0,1]
 
-        df = {}
-        df["auth"] = self.auth_indo_vector
+        # Get predictions for Indonesian, and compare to authoritative
         df["method"] = method_indo_vector
-        df = pd.DataFrame(df)
-        indo_model = smf.ols('auth ~ method', data=df).fit()
+        DF = pd.DataFrame(df)
+        combo_indo_predictions = combined_model.predict(DF)
+        indo_correl = np.corrcoef(combo_indo_predictions, self.auth_indo_vector)[0,1]
 
-        return combined_model, austro_model, indo_model
+        return combined_model, austro_correl, indo_correl
 
     def optimise_geographic(self):
 
