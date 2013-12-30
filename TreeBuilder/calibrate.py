@@ -70,7 +70,7 @@ class Calibrator:
         self.auth_austro_tree = dendropy.Tree.get_from_path("authoritative_trees/austronesian/no_labels", "newick")
         self.auth_austro_trans = load_translate_file("authoritative_trees/austronesian/wals_compatible_translate")
 
-        self.auth_indo_trees = self.load_indo_trees("authoritative_trees/indo-european/no_labels", 10)
+        self.auth_indo_trees = self.load_indo_trees("authoritative_trees/indo-european/no_labels", 500)
         self.auth_indo_trans = load_translate_file("authoritative_trees/indo-european/wals_compatible_translate")
 
     def find_common_langs(self):
