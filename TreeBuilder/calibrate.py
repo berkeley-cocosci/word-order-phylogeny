@@ -157,10 +157,10 @@ class Calibrator:
     def optimise_geographic(self):
 
         func = distance.geographic_matrix_factory()
-        combined_model, austro_model, indo_model = self.evaluate_method(func, "geo")
-        self.max_geo_combined = combined_model.rsquared
-        self.max_geo_austro = austro_model.rsquared
-        self.max_geo_indo = indo_model.rsquared
+        combined_model, austro_correl, indo_correl = self.evaluate_method(func, "geo")
+        self.max_geo_combined = math.sqrt(combined_model.rsquared)
+        self.max_geo_austro = austro_correl
+        self.max_geo_indo = indo_correl
         with open("calibration_results/optimal_geographic_parameters", "w") as fp:
             fp.write("%f\n" % combined_model.params["Intercept"])
             fp.write("%f\n" % combined_model.params["method"])
@@ -176,20 +176,21 @@ class Calibrator:
         for i in range(0, N):
             param = (i+1)*(1.0/N)
             func = distance.genetic_matrix_factory(param)
-            combined_model, austro_model, indo_model = self.evaluate_method(func, "gen")
+            combined_model, austro_correl, indo_correl = self.evaluate_method(func, "gen")
             if combined_model.rsquared > bestc:
-                best_combined = combined_model
-                best_austro = austro_model
-                best_indo = indo_model
-                bestparam = param
-        self.max_gen_combined = best_combined.rsquared
-        self.max_gen_austro = best_austro.rsquared
-        self.max_gen_indo = best_indo.rsquared
+                best_model = combined_model
+                best_combined = math.sqrt(combined_model.rsquared)
+                best_austro = austro_correl
+                best_indo = indo_correl
+                best_param = param
+        self.max_gen_combined = best_combined
+        self.max_gen_austro = best_austro
+        self.max_gen_indo = best_indo
 
         with open("calibration_results/optimal_genetic_parameters", "w") as fp:
-            fp.write("%f\n" % best_combined.params["Intercept"])
-            fp.write("%f\n" % best_combined.params["method"])
-            fp.write("%f\n" % bestparam)
+            fp.write("%f\n" % best_model.params["Intercept"])
+            fp.write("%f\n" % best_model.params["method"])
+            fp.write("%f\n" % best_param)
 
     def optimise_feature(self):
 
