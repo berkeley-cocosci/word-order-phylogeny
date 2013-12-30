@@ -87,11 +87,16 @@ class Calibrator:
         return np.array(auth_vector)
 
     def compute_auth_vectors(self):
+        # Austronesian (simple)
         self.auth_austro_vector = self.compute_auth_vector(self.auth_austro_tree, self.common_austro_langs, self.auth_austro_trans)
-        self.auth_austro_vector = self.auth_austro_vector / self.auth_austro_vector.max()
+        # Indo-European (store mean of many vectors)
         auth_indo_vectors = np.array([self.compute_auth_vector(auth_indo_tree, self.common_indo_langs, self.auth_indo_trans) for auth_indo_tree in self.auth_indo_trees])
         self.auth_indo_vector = np.mean(auth_indo_vectors, axis=0)
+        # Normalise
         self.auth_indo_vector = self.auth_indo_vector / self.auth_indo_vector.max()
+        self.auth_austro_vector = self.auth_austro_vector / self.auth_austro_vector.max()
+        # Combination
+        self.auth_combo_vector = np.concatenate([self.auth_austro_vector, self.auth_indo_vector])
 
     def compute_method_vector(self, matrix, common_langs, trans):
         """
