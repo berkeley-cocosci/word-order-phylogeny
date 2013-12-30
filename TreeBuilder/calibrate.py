@@ -120,7 +120,7 @@ class Calibrator:
     def fit_models(self, method_austro_vector, method_indo_vector, label=None):
 
         df = {}
-        df["auth"] = np.concatenate([self.auth_austro_vector, self.auth_indo_vector])
+        df["auth"] = self.auth_combo_vector
         df["method"] = np.concatenate([method_austro_vector, method_indo_vector])
         df = pd.DataFrame(df)
         combined_model = smf.ols('auth ~ method', data=df).fit()
@@ -200,7 +200,7 @@ class Calibrator:
             langs_by_name[lang.name] = lang
 
         df = {}
-        df["auth"] = np.concatenate([self.auth_austro_vector, self.auth_indo_vector])
+        df["auth"] = self.auth_combo_vector
         good_features = []
         for index, feature in enumerate(dense_features):
             df["feat%d" % index] = []
@@ -264,7 +264,7 @@ class Calibrator:
         feat_indo =  self.compute_method_vector(distance.build_optimal_feature_matrix(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
 
         df = {}
-        df["auth"] = np.concatenate([self.auth_austro_vector, self.auth_indo_vector])
+        df["auth"] = self.auth_combo_vector
         df["geo"] = np.concatenate([geo_austro, geo_indo])
         df["gen"] = np.concatenate([gen_austro, gen_indo])
         df["feat"] = np.concatenate([feat_austro, feat_indo])
