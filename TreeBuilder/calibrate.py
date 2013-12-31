@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import gc
 import pdb
 import getopt
 import itertools
@@ -77,9 +78,13 @@ class Calibrator:
         self.common_austro_langs = filter(lambda(x): x in self.auth_austro_trans, self.wals_austro_trans)
         self.common_indo_langs = filter(lambda(x): x in self.auth_indo_trans, self.wals_indo_trans)
         if len(self.common_austro_langs) > len(self.common_indo_langs):
+            self.all_common_austro_langs = self.common_austro_langs[:]
+            self.all_common_indo_langs = None
             random.shuffle(self.common_austro_langs)
             self.common_austro_langs = self.common_austro_langs[0:len(self.common_indo_langs)]
         else:
+            self.all_common_indo_langs = self.common_indo_langs[:]
+            self.all_common_austro_langs = None
             random.shuffle(self.common_indo_langs)
             self.common_indo_langs = self.common_indo_langs[0:len(self.common_austro_langs)]
         assert len(self.common_austro_langs) == len(self.common_indo_langs)
@@ -96,9 +101,14 @@ class Calibrator:
     def compute_auth_vectors(self):
         # Austronesian (simple)
         self.auth_austro_vector = self.compute_auth_vector(self.auth_austro_tree, self.common_austro_langs, self.auth_austro_trans)
+        if self.all_common_austro_langs:
+            self.auth_all_austro_vector = self.compute_auth_vector(self.auth_austro_tree, self.all_common_austro_langs, self.auth_austro_trans)
         # Indo-European (store mean of many vectors)
         auth_indo_vectors = np.array([self.compute_auth_vector(auth_indo_tree, self.common_indo_langs, self.auth_indo_trans) for auth_indo_tree in self.auth_indo_trees])
         self.auth_indo_vector = np.mean(auth_indo_vectors, axis=0)
+        if self.all_common_indo_langs:
+            auth_all_indo_vectors = np.array([self.compute_auth_vector(auth_indo_tree, self.all_common_indo_langs, self.auth_indo_trans) for auth_indo_tree in self.auth_indo_trees])
+            self.auth_all_indo_vector = np.mean(auth_all_indo_vectors, axis=0)
         # Normalise
         self.auth_indo_vector = self.auth_indo_vector / self.auth_indo_vector.max()
         self.auth_austro_vector = self.auth_austro_vector / self.auth_austro_vector.max()
@@ -127,43 +137,26 @@ class Calibrator:
     def fit_models(self, method_austro_vector, method_indo_vector, label=None):
         """
         Fit a model to the authoritative data for both reference language
-        families and return a 3-tuple of the model, the Austronesian correlation
-        and the Indo-European correlation
+        families and return the model.
         """
         # Fit the model to the combined authoritative data
         df = {}
         df["auth"] = self.auth_combo_vector
         df["method"] = np.concatenate([method_austro_vector, method_indo_vector])
-        DF = pd.DataFrame(df)
-        combined_model = smf.ols('auth ~ method', data=DF).fit()
+        df = pd.DataFrame(df)
+        model = smf.ols('auth ~ method', data=df).fit()
         if label:
             df.to_csv("calibration_results/%s_data.csv" % label)
 
-        # Get predictions for Austronesian, and compare to authoritative
-        df.pop("auth")
-        df["method"] = method_austro_vector
-        DF = pd.DataFrame(df)
-        combo_austro_predictions = combined_model.predict(DF)
-        austro_correl = np.corrcoef(combo_austro_predictions, self.auth_austro_vector)[0,1]
-
-        # Get predictions for Indonesian, and compare to authoritative
-        df["method"] = method_indo_vector
-        DF = pd.DataFrame(df)
-        combo_indo_predictions = combined_model.predict(DF)
-        indo_correl = np.corrcoef(combo_indo_predictions, self.auth_indo_vector)[0,1]
-
-        return combined_model, austro_correl, indo_correl
+        return model
 
     def optimise_geographic(self):
 
         func = distance.geographic_matrix_factory()
-        combined_model, austro_correl, indo_correl = self.evaluate_method(func, "geo")
-        self.max_geo_combined = math.sqrt(combined_model.rsquared)
-        self.max_geo_austro = austro_correl
-        self.max_geo_indo = indo_correl
+        model = self.evaluate_method(func, "geo")
         with open("calibration_results/optimal_geographic_parameters", "w") as fp:
-            fp.write("%f\n" % combined_model.params["Intercept"])
-            fp.write("%f\n" % combined_model.params["method"])
+            fp.write("%f\n" % model.params["Intercept"])
+            fp.write("%f\n" % model.params["method"])
 
     def optimise_genetic(self):
         """
@@ -171,21 +164,14 @@ class Calibrator:
         fine-grained genetic category matches.
         """
         N = 100
-        bestparam = 0
-        bestc = 0
+        best_rsquared = 0
         for i in range(0, N):
             param = (i+1)*(1.0/N)
             func = distance.genetic_matrix_factory(param)
-            combined_model, austro_correl, indo_correl = self.evaluate_method(func, "gen")
-            if combined_model.rsquared > bestc:
-                best_model = combined_model
-                best_combined = math.sqrt(combined_model.rsquared)
-                best_austro = austro_correl
-                best_indo = indo_correl
+            model = self.evaluate_method(func, "gen")
+            if model.rsquared > best_rsquared:
+                best_model = model
                 best_param = param
-        self.max_gen_combined = best_combined
-        self.max_gen_austro = best_austro
-        self.max_gen_indo = best_indo
 
         with open("calibration_results/optimal_genetic_parameters", "w") as fp:
             fp.write("%f\n" % best_model.params["Intercept"])
@@ -215,6 +201,8 @@ class Calibrator:
         df["auth"] = self.auth_combo_vector
         good_features = []
         for index, feature in enumerate(dense_features):
+            if feature == "Order of Subject, Object and Verb":
+                continue
             df["feat%d" % index] = []
             for l1, l2 in itertools.chain(itertools.combinations(self.common_austro_langs, 2), itertools.combinations(self.common_indo_langs, 2)):
                 l1 = langs_by_name[l1]
@@ -230,37 +218,28 @@ class Calibrator:
             else:
                 # There's literally no pairwise data for this feature!
                 df.pop("feat%d" % index)
+        df["sum"] = []
+        for i in range(0, len(df["auth"])):
+            df["sum"].append(math.log(sum([df[x][i] for x in good_features])+0.0001))
         df = pd.DataFrame(df)
         df.to_csv("calibration_results/feature_data.csv")
         model_spec = "auth ~ " + " + ".join(good_features)
         model = smf.ols(model_spec, data=df).fit()
 
+        #print "Linear: ", model.rsquared
+        #df["fitted"] = [math.log(x) for x in list(model.fittedvalues)]
+        #model2 = smf.ols("auth ~ fitted", data=df).fit()
+        #print "Log: ", model2.rsquared
+        #df["fitted"] = [math.exp(x) for x in list(model.fittedvalues)]
+        #model3 = smf.ols("auth ~ fitted", data=df).fit()
+        #print "Exp: ", model3.rsquared
+
         fp = open("calibration_results/optimal_feature_weights", "w")
+        fp.write("%f\tintercept\n" % model.params["Intercept"])
         for index, feature in enumerate(dense_features):
-            fp.write("%f\tintercept\n" % model.params["Intercept"])
             if "feat%d" % index in good_features:
                 fp.write("%f\t%s\n" % (model.params["feat%d" % index], feature))
         fp.close()
-
-        self.max_feat_combined = model.rsquared
-
-        olddf = df
-        df = {}
-        for key in olddf:
-            df[key] = olddf[key][0:len(self.auth_austro_vector)]
-        df = pd.DataFrame(df)
-        model_spec = "auth ~ " + " + ".join(good_features)
-        model = smf.ols(model_spec, data=df).fit()
-        self.max_feat_austro = model.rsquared
-
-        df = {}
-        for key in olddf:
-            df[key] = olddf[key][len(self.auth_austro_vector):]
-            assert len(df[key]) == len(self.auth_indo_vector)
-        df = pd.DataFrame(df)
-        model_spec = "auth ~ " + " + ".join(good_features)
-        model = smf.ols(model_spec, data=df).fit()
-        self.max_feat_indo = model.rsquared
 
     def optimise_combination(self):
         """
@@ -292,39 +271,59 @@ class Calibrator:
         fp.write("feat\t%f\n" % weights[2])
         fp.close()
 
-        self.max_combo_combined = model.rsquared
-
-        df = {}
-        df["auth"] = self.auth_austro_vector
-        df["geo"] = geo_austro
-        df["gen"] = gen_austro
-        df["feat"] = feat_austro
-        df = pd.DataFrame(df)
-        model = smf.ols('auth ~ geo + gen + feat', data=df).fit()
-        self.max_combo_austro = model.rsquared
-
-        df = {}
-        df["auth"] = self.auth_indo_vector
-        df["geo"] = geo_indo
-        df["gen"] = gen_indo
-        df["feat"] = feat_indo
-        df = pd.DataFrame(df)
-        model = smf.ols('auth ~ geo + gen + feat', data=df).fit()
-        self.max_combo_indo = model.rsquared
+        return (model.params["Intercept"], weights[0], weights[1], weights[2])
 
     def summarise(self):
 
-        pt = prettytable.PrettyTable(["Method", "Combined correl", "Austronesian correl", "Indo-European correl"])
-        pt.add_row(["GEOGRAPHIC", self.max_geo_combined, self.max_geo_austro, self.max_geo_indo])
-        pt.add_row(["GENETIC", self.max_gen_combined, self.max_gen_austro, self.max_gen_indo])
-        pt.add_row(["FEATURE", self.max_feat_combined, self.max_feat_austro, self.max_feat_indo])
-        pt.add_row(["COMBINATION", self.max_combo_combined, self.max_combo_austro, self.max_combo_indo])
+        """
+        Compute the correlation between each of the four methods and the
+        two authoritative trees, displaying the results in a PrettyTable.
+        """
+        pt = prettytable.PrettyTable(["Method", "Austronesian correl", "Indo-European correl"])
+
+        names = ("GEOGRAPHIC", "GENETIC", "FEATURE", "COMBINATION")
+        funcs = (distance.build_optimal_geographic_matrix,
+                    distance.build_optimal_genetic_matrix,
+                    distance.build_optimal_feature_matrix,
+                    distance.build_optimal_combination_matrix)
+        for name, func in zip(names, funcs):
+            if self.all_common_austro_langs:
+                austro_data = self.compute_method_vector(func(self.austrolangs), self.all_common_austro_langs, self.wals_austro_trans)
+                austro_correl = np.corrcoef(austro_data, self.auth_all_austro_vector)[0,1]
+            else:
+                austro_data = self.compute_method_vector(func(self.austrolangs), self.common_austro_langs, self.wals_austro_trans)
+                austro_correl = np.corrcoef(austro_data, self.auth_austro_vector)[0,1]
+            if self.all_common_indo_langs:
+                indo_data =  self.compute_method_vector(func(self.indolangs), self.all_common_indo_langs, self.wals_indo_trans)
+                indo_correl = np.corrcoef(indo_data, self.auth_all_indo_vector)[0,1]
+            else:
+                indo_data =  self.compute_method_vector(func(self.indolangs), self.common_indo_langs, self.wals_indo_trans)
+                indo_correl = np.corrcoef(indo_data, self.auth_indo_vector)[0,1]
+            pt.add_row([name, austro_correl, indo_correl])
+
         print pt
 
-if __name__ == "__main__":
-    calibrator = Calibrator()
-    calibrator.optimise_geographic()
-    calibrator.optimise_genetic()
-    calibrator.optimise_feature()
-    calibrator.optimise_combination()
+def main(samples=10):
+
+    comb_params = []
+    for i in range(0,samples):
+        gc.collect()
+        calibrator = Calibrator()
+        calibrator.optimise_geographic()
+        calibrator.optimise_genetic()
+        calibrator.optimise_feature()
+        comb_params.append(calibrator.optimise_combination())
+        if i != (samples-1):
+            del(calibrator)
+    mean_params = [sum([params[index] for params in comb_params])/len(comb_params) for index in range(0,4)]
+    fp = open("calibration_results/optimal_combination_weights", "w")
+    fp.write("intercept\t%f\n" % mean_params[0])
+    fp.write("geo\t%f\n" % mean_params[1])
+    fp.write("gen\t%f\n" % mean_params[2])
+    fp.write("feat\t%f\n" % mean_params[3])
+    fp.close()
+
     calibrator.summarise()
+
+if __name__ == "__main__":
+    main()
