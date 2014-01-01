@@ -201,7 +201,7 @@ class Calibrator:
         df["auth"] = self.auth_combo_vector
         good_features = []
         for index, feature in enumerate(dense_features):
-            if feature == "Order of Subject, Object and Verb":
+            if feature == bwo:
                 continue
             df["feat%d" % index] = []
             for l1, l2 in itertools.chain(itertools.combinations(self.common_austro_langs, 2), itertools.combinations(self.common_indo_langs, 2)):
