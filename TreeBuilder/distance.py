@@ -164,21 +164,46 @@ def build_comparators():
 	comparators["location"] = haversine_distance
 	return comparators
 
-def feature_function_factory(weights, intercept=0, slope=1.0):
+def feature_function_factory(languages, weights, intercept=0, slope=1.0):
     """
     Return a function which computes pairwise distances according
     to the FEATURE method, with feature weights as given by weights.
     """
     comparators = build_comparators()
+    # For each feature, find the mean distance between language pairs with data
+    means = {}
+    supermean = 0
+    supernorm = 0
+    for feature in weights:
+        means[feature] = 0
+        norm = 0
+        for l1, l2 in itertools.combinations(languages, 2):
+            if feature in l1.data and feature in l2.data:
+                means[feature] += comparators[feature](l1.data[feature], l2.data[feature])
+                norm += 1
+        if norm:
+            means[feature] /= norm
+            supermean += means[feature]
+            supernorm += 1
+        else:
+            means[feature] = "NODATA"
+    # For those features for which there was no pairwise data, use the global mean
+    supermean /= supernorm
+    for feature in means:
+        if means[feature] == "NODATA":
+            means[feature] = supermean
+
+    # Now that we know per-feature means and the supermean, we can define the
+    # distance function, using the means for language pairings with unknown data
     def feature_distance(lang1, lang2):
         dist = 0
         norm = 0
         for feature in weights:
-            if feature not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "Order of Subject and Verb", "Order of Object and Verb", "iso_codes", "ethnoclass"] and not feature.startswith("Relationship between the Order of Object and Verb"):
+            if feature not in ["genus", "subfamily", "family", "location", "Order of Subject, Object and Verb", "Order of Subject and Verb", "Order of Object and Verb", "iso_codes", "ethnoclass", "intercept"] and not feature.startswith("Relationship between the Order of Object and Verb"):
                 if feature in lang1.data and feature in lang2.data:
                     dist += weights[feature]*comparators[feature](lang1.data[feature], lang2.data[feature])
                 else:
-                    dist += weights[feature]*0.5
+                    dist += weights[feature]*means[feature]
                 norm += weights[feature]
                 raw = dist/norm
         return intercept + slope*raw
@@ -186,7 +211,7 @@ def feature_function_factory(weights, intercept=0, slope=1.0):
 
 def feature_matrix_factory(weights, intercept=0, slope=1.0):
     def matrix_builder(languages):
-        distfunc = feature_function_factory(weights, intercept, slope)
+        distfunc = feature_function_factory(languages, weights, intercept, slope)
         return build_matrix(languages, distfunc)
     return matrix_builder
 
@@ -198,7 +223,7 @@ def build_optimal_feature_matrix(languages):
             weight = float(weight.strip())
             feature = feature.strip()
             weights[feature] = weight
-    feature_distance = feature_function_factory(weights, intercept=weights["intercept"])
+    feature_distance = feature_function_factory(languages, weights, intercept=weights["intercept"])
     return build_matrix(languages, feature_distance)
 
 ##########
@@ -225,7 +250,7 @@ def build_optimal_combination_matrix(languages):
             weight = float(weight.strip())
             feature = feature.strip()
             weights[feature] = weight
-    feat = feature_function_factory(weights, intercept=weights["intercept"])
+    feat = feature_function_factory(languages, weights, intercept=weights["intercept"])
 
     fp = open("calibration_results/optimal_combination_weights", "r")
     intercept, geo_w, gen_w, feat_w = [float(line.split()[1]) for line in fp.readlines()]
