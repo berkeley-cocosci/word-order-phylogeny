@@ -21,7 +21,8 @@ def build_matrix(languages, distance_function):
     maxd = matrix.max()
     mind = matrix.min()
     if mind < 0:
-        matrix /= abs(mind)
+        matrix += abs(mind)
+        matrix /= (maxd + abs(mind))
     else:
         matrix /= maxd
     return matrix
@@ -204,8 +205,9 @@ def feature_function_factory(languages, weights, intercept=0, slope=1.0):
                     dist += weights[feature]*comparators[feature](lang1.data[feature], lang2.data[feature])
                 else:
                     dist += weights[feature]*means[feature]
+#                    dist += weights[feature]*0.5
                 norm += weights[feature]
-                raw = dist/norm
+        raw = dist/norm
         return intercept + slope*raw
     return feature_distance
 
