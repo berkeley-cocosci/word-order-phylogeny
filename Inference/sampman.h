@@ -13,11 +13,13 @@
 struct sampman{
 	int sample_count;
 	int stabs_log_pointer;
+	int likelihood_log_pointer;
 	int stability_sampling_rate;
 	int multitree;
 	FILE *samplesfp, *ancestralsfp;
 	double max_log_lh;
 	double max_log_poster;
+	double likelihood_log[100000];
 	gsl_vector *stabs_sum;
 	gsl_vector *stabs_map;
 	gsl_vector *stabs_log[500];
