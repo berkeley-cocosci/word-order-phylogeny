@@ -106,9 +106,13 @@ void process_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws, node_t *tree) {
 		sm->max_log_lh = mcmc->log_lh;
 	}
 	// Take stability samples at appropriate rate
-	if(sm->sample_count % sm->stability_sampling_rate == 0) {
-		gsl_vector_memcpy(sm->stabs_log[sm->stabs_log_pointer], mcmc->stabs);
-		sm->stabs_log_pointer++;
+	// (Handle the case of stability_sampling_rate = 0 because sampling rate is
+	// computed from tree and sample counts, and is sometimes zero for very small tasks)
+	if(sm->stability_sampling_rate > 0) {
+		if(sm->sample_count % sm->stability_sampling_rate == 0) {
+			gsl_vector_memcpy(sm->stabs_log[sm->stabs_log_pointer], mcmc->stabs);
+			sm->stabs_log_pointer++;
+		}
 	}
 
 	// Stationary prior
