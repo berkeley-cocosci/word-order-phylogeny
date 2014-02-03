@@ -11,7 +11,7 @@ void initialise_sampman(sampman_t *sm, char *outdir) {
 	int i;
 	sm->sample_count = 0;
 	sm->stabs_log_pointer = 0;
-	sm->likelihood_log_pointer = 0;
+	sm->log_pointer = 0;
 	sm->max_log_lh = -1000000000;
 	sm->max_log_poster = -1000000000;
 	sm->stabs_sum = gsl_vector_alloc(6);
@@ -38,7 +38,7 @@ void initialise_sampman(sampman_t *sm, char *outdir) {
 void reset_sampman(sampman_t *sm) {
 	uint8_t i;
 	sm->stabs_log_pointer = 0;
-	sm->likelihood_log_pointer = 0;
+	sm->log_pointer = 0;
 	gsl_vector_set_zero(sm->stabs_sum);
 	gsl_vector_set_zero(sm->stabs_map);
 	gsl_vector_set_zero(sm->stationary_sum);
@@ -118,9 +118,11 @@ void process_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws, node_t *tree) {
 			sm->stabs_log_pointer++;
 		}
 	}
-	if(sm->likelihood_log_pointer < 100000) {
-		sm->likelihood_log[sm->likelihood_log_pointer] = mcmc->log_lh;
-		sm->likelihood_log_pointer++;
+	if(sm->log_pointer < 100000) {
+		sm->prior_log[sm->log_pointer] = mcmc->log_prior;
+		sm->likelihood_log[sm->log_pointer] = mcmc->log_lh;
+		sm->posterior_log[sm->log_pointer] = mcmc->log_poster;
+		sm->log_pointer++;
 	}
 
 	// Stationary prior
@@ -250,9 +252,9 @@ void save_indiv_q(char *directory, sampman_t *sm) {
 
 	/* Save logged likelihoods */
 	strcpy(filename, directory);
-	strcat(filename, "/log_likelihoods");
+	strcat(filename, "/bayes_factor_posterior_samples");
 	fp = fopen(filename, "w");
-	for(i=0; i<100000; i++) fprintf(fp, "%f\n", sm->likelihood_log[i]);
+	for(i=0; i<100000; i++) fprintf(fp, "%f, %f, %f\n", sm->prior_log[i], sm->likelihood_log[i], sm->posterior_log[i]);
 	fclose(fp);
 
 	/* Save sliding prior ancestral distributions */
@@ -264,7 +266,7 @@ void save_indiv_q(char *directory, sampman_t *sm) {
 }
 
 void save_common_q(char *directory, sampman_t *sms) {
-	double log_lh;
+	double log_prior, log_lh, log_poster;
 	char filename[1024];
 	FILE *fp;
 	int i, j;
@@ -340,14 +342,18 @@ void save_common_q(char *directory, sampman_t *sms) {
 
 	/* Save logged likelihoods */
 	strcpy(filename, directory);
-	strcat(filename, "/log_likelihoods");
+	strcat(filename, "/bayes_factor_posterior_samples");
 	fp = fopen(filename, "w");
 	for(i=0; i<100000; i++) {
+		log_prior = 0;
 		log_lh = 0;
+		log_poster = 0;
 		for(j=0; j<6; j++) {
+			log_prior += sms[j].prior_log[i];
 			log_lh += sms[j].likelihood_log[i];
+			log_poster += sms[j].posterior_log[i];
 		}
-		fprintf(fp, "%f\n", log_lh);
+		fprintf(fp, "%f, %f, %f\n", log_prior, log_lh, log_poster);
 	}
 	fclose(fp);
 
