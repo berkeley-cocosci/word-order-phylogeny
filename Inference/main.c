@@ -7,6 +7,7 @@
 #include<gsl/gsl_matrix_complex_float.h>
 #include<gsl/gsl_vector.h>
 #include<gsl/gsl_vector_complex.h>
+#include<gsl/gsl_statistics_double.h>
 
 #include "gslworkspace.h"
 #include "tree.h"
@@ -164,7 +165,8 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, in
 
 void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, int treecount, char *outdir, int logging) {
 	FILE *logfp;
-	int treeindex, i;
+	FILE *correlfp;
+	int treeindex, i, j, k;
 	char filename[1024];
 	char methods[][16] = {"geographic", "genetic", "feature", "combination" };
 	node_t **trees1 = calloc(6, sizeof(node_t*));
@@ -174,6 +176,12 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	gslws_t *wses2 = calloc(6, sizeof(gslws_t));
 	sampman_t *sms1 = calloc(6, sizeof(sampman_t));
 	sampman_t *sms2 = calloc(6, sizeof(sampman_t));
+	gsl_matrix *q1 = gsl_matrix_alloc(6, 6);
+	gsl_matrix *q2 = gsl_matrix_alloc(6, 6);
+	double qcorrel1[36], qcorrel2[36];
+	double anccorrel1[36], anccorrel2[36];
+	double qcorrelation = 0;
+	double anccorrelation = 0;
 
 	// Open log file
 	if(logging) {
@@ -190,12 +198,13 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 		initialise_sampman(&sms1[i], outdir);
 		initialise_sampman(&sms2[i], outdir);
 		// Compute stability sampling rate
-		sms1[i].stability_sampling_rate = (treecount*samples) / 500;
-		sms2[i].stability_sampling_rate = (treecount*samples) / 500;
+		sms1[i].stability_sampling_rate = (treecount*samples) / 500.0;
+		sms2[i].stability_sampling_rate = (treecount*samples) / 500.0;
 	}
 
 	// Loop over trees...
 	for(treeindex=0; treeindex<treecount; treeindex++) {
+
 		/* Build tree(s) */
 		for(i=0; i<6; i++) {
 			load_tree(&trees1[i], "../TreeBuilder/generated_trees/split/1/", method, i, treeindex, shuffle);
@@ -204,14 +213,80 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 		/* Draw samples for this tree (set) */
 		compute_multi_tree_probabilities(&mcmc1, trees1, wses1);
 		compute_multi_tree_probabilities(&mcmc2, trees2, wses2);
-		do_multi_tree_inference(logfp, &mcmc1, trees1, wses1, sms1, NULL, burnin, samples, lag);
-		do_multi_tree_inference(logfp, &mcmc2, trees2, wses2, sms2, NULL, burnin, samples, lag);
+
+		/* Burn in */
+		for(i=0; i<burnin; i++) {
+			multi_tree_mcmc_iteration(logfp, &mcmc1, trees1, wses1);
+			multi_tree_mcmc_iteration(logfp, &mcmc2, trees2, wses2);
+		}
+
+		gsl_matrix_set_zero(q1);
+		gsl_matrix_set_zero(q2);
+		/* Take samples */
+		for(i=0; i<samples; i++) {
+			if(gsl_rng_uniform_int(mcmc1.r, 10000) >= 9999) {
+				/* Random restart! */
+				random_restart(&mcmc1);
+				random_restart(&mcmc2);
+				compute_multi_tree_probabilities(&mcmc1, trees1, wses1);
+				compute_multi_tree_probabilities(&mcmc2, trees2, wses2);
+				for(i=0; i<burnin; i++) {
+					multi_tree_mcmc_iteration(logfp, &mcmc1, trees1, wses1);
+					multi_tree_mcmc_iteration(logfp, &mcmc2, trees2, wses2);
+				}
+			}
+
+			for(j=0; j<lag; j++) {
+				multi_tree_mcmc_iteration(logfp, &mcmc1, trees1, wses1);
+				multi_tree_mcmc_iteration(logfp, &mcmc2, trees2, wses2);
+			}
+
+			build_q(&mcmc1);
+			build_q(&mcmc2);
+
+			for(j=0; j<6; j++) {
+				upwards_belprop(logfp, trees1[j], mcmc1.Q, &wses1[j]);
+				upwards_belprop(logfp, trees2[j], mcmc2.Q, &wses2[j]);
+				process_sample(&sms1[j], &mcmc1, &wses1[j], trees1[j]);
+				process_sample(&sms2[j], &mcmc2, &wses2[j], trees2[j]);
+
+			}
+
+			/* Combine Q samples for this tree pair */
+			gsl_matrix_add(q1, mcmc1.Q);
+			gsl_matrix_add(q2, mcmc2.Q);
+			for(j=0; j<6; j++) {
+				for(k=0; k<6; k++) {
+					anccorrel1[j*6+k] += trees1[j]->dist[k];
+					anccorrel2[j*6+k] += trees2[j]->dist[k];
+				}
+			}
+
+
+		}
+		
+		gsl_matrix_scale(q1, 1.0 / samples);
+		gsl_matrix_scale(q2, 1.0 / samples);
+		for(i=0; i<6; i++) {
+			for(j=0; j<6; j++) {
+				qcorrel1[i*6+j] = gsl_matrix_get(q1, i, j);
+				qcorrel2[i*6+j] = gsl_matrix_get(q2, i, j);
+				anccorrel1[i*6+j] /= (1.0*samples);
+				anccorrel2[i*6+j] /= (1.0*samples);
+			}
+		}
+		qcorrelation += gsl_stats_correlation(qcorrel1, 1, qcorrel2, 1, 36);
+		anccorrelation += gsl_stats_correlation(anccorrel1, 1, anccorrel2, 1, 36);
+
+		/***************************************************/
 		/* Free up tree memory */
 		for(i=0; i<6; i++) {
 			free(trees1[i]);
 			free(trees2[i]);
 		}
 	}
+	qcorrelation /= treecount;
+	anccorrelation /= treecount;
 
 	// Finish up
 	for(i=0; i<6; i++) {
@@ -224,6 +299,13 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	sprintf(filename, "%s/%s/", outdir, methods[method]);
 	strcat(filename, "/right-half/");
 	save_common_q(filename, sms2);
+
+	sprintf(filename, "%s/%s/correlations", outdir, methods[method]);
+	correlfp = fopen(filename, "w");
+	fprintf(correlfp, "Q: %f\n", qcorrelation);
+	fprintf(correlfp, "Anc: %f\n", anccorrelation);
+	fclose(correlfp);
+
 	fclose(logfp);
 }
 
