@@ -158,18 +158,7 @@ def report(conn, cursor):
     for result in cursor.fetchall():
         print result
 
-def create_dense_subset(conn, cursor, n=25):
-    cursor.execute('''CREATE TABLE IF NOT EXISTS dense_languages(
-                wals_code TEXT PRIMARY KEY,
-                name TEXT,
-                latitude REAL,
-                longitude REAL,
-                genus TEXT,
-                family TEXT,
-                subfamily TEXT,
-                iso_codes TEXT)''')
-    cursor.execute('''DELETE FROM dense_languages''')
-    cursor.execute('''INSERT INTO dense_languages SELECT * FROM languages''')
+def compute_dense_features(conn, cursor, n=25):
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS dense_features(
                 id TEXT PRIMARY KEY,
@@ -189,6 +178,27 @@ def create_dense_subset(conn, cursor, n=25):
     for fid in dense_features:
         cursor.execute('''INSERT INTO dense_features SELECT * FROM features WHERE id=?''', (fid,))
 
+def get_dense_features(conn, cursor):
+    cursor.execute('''SELECT name FROM dense_features''')
+    return [x[0] for x in cursor.fetchall()]
+
+def compute_dense_languages(conn, cursor):
+
+    # Create or empty dense_languages table
+    cursor.execute('''CREATE TABLE IF NOT EXISTS dense_languages(
+                wals_code TEXT PRIMARY KEY,
+                name TEXT,
+                latitude REAL,
+                longitude REAL,
+                genus TEXT,
+                family TEXT,
+                subfamily TEXT,
+                iso_codes TEXT)''')
+    cursor.execute('''DELETE FROM dense_languages''')
+
+    # Copy all languages into dense_languages
+    cursor.execute('''INSERT INTO dense_languages SELECT * FROM languages''')
+
     # Now we delete from the dense_languages table those languages
     # which do not have data for all the dense features
     for fid in dense_features:
@@ -196,6 +206,17 @@ def create_dense_subset(conn, cursor, n=25):
                 (SELECT wals_code FROM data_points WHERE feature_id=? and value_id IS NULL)''', (fid,))
 
 ### Convenience functions
+
+def get_languages_by_family(conn, cursor, family):
+    ethnoclasses = generate_trees.load_ethnologue_classifications()
+    cursor.execute("""SELECT wals_code FROM languages WHERE family=? AND iso_codes != ''""", (family,))
+    codes = [code[0] for code in cursor.fetchall()]
+    languages = map(lambda(x): language_from_wals_code(conn, cursor, x), codes)
+    languages = map(lambda(x): generate_trees.apply_ethnoclass(x, ethnoclasses), languages)
+    languages = filter(lambda(x): x.data["ethnoclass"].split(",")[0].strip() == x.data["family"], languages)
+    languages = filter(lambda(x): x.data.get(bwo, None) not in (7,'7',None), languages)
+    hierlengths = [len(x.data["ethnoclass"].split(",")[1:]) for x in languages ]
+    return languages
 
 def get_dense_languages_by_family(conn, cursor, family):
     ethnoclasses = generate_trees.load_ethnologue_classifications()
@@ -252,7 +273,8 @@ def main():
     conn.commit()
 
     # Find dense subset of language x feature matrix
-    create_dense_subset(conn, cursor)
+    compute_dense_features(conn, cursor)
+    compute_dense_languages(conn, cursor)
     
     conn.commit()
     cursor.close()
