@@ -345,15 +345,7 @@ void save_common_q(char *directory, sampman_t *sms) {
 	strcat(filename, "/bayes_factor_posterior_samples");
 	fp = fopen(filename, "w");
 	for(i=0; i<100000; i++) {
-		log_prior = 0;
-		log_lh = 0;
-		log_poster = 0;
-		for(j=0; j<6; j++) {
-			log_prior += sms[j].prior_log[i];
-			log_lh += sms[j].likelihood_log[i];
-			log_poster += sms[j].posterior_log[i];
-		}
-		fprintf(fp, "%f, %f, %f\n", log_prior, log_lh, log_poster);
+		fprintf(fp, "%f, %f, %f\n", sms[0].prior_log[i], sms[0].likelihood_log[i], sms[0].posterior_log[i]);
 	}
 	fclose(fp);
 
