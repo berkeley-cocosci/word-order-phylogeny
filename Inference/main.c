@@ -28,7 +28,7 @@ void do_single_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t *tree, gslws_t *
 			/* Random restart! */
 			random_restart(mcmc);
 			compute_single_tree_probabilities(mcmc, tree, ws);
-			for(i=0; i<burnin; i++) single_tree_mcmc_iteration(logfp, mcmc, tree, ws);
+			for(j=0; j<burnin; j++) single_tree_mcmc_iteration(logfp, mcmc, tree, ws);
 		}
 
 		for(j=0; j<lag; j++) {
@@ -53,7 +53,7 @@ void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t 
 			/* Random restart! */
 			random_restart(mcmc);
 			compute_multi_tree_probabilities(mcmc, trees, wses);
-			for(i=0; i<burnin; i++) multi_tree_mcmc_iteration(logfp, mcmc, trees, wses);
+			for(j=0; j<burnin; j++) multi_tree_mcmc_iteration(logfp, mcmc, trees, wses);
 		}
 
 		for(j=0; j<lag; j++) {
@@ -230,7 +230,7 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 				random_restart(&mcmc2);
 				compute_multi_tree_probabilities(&mcmc1, trees1, wses1);
 				compute_multi_tree_probabilities(&mcmc2, trees2, wses2);
-				for(i=0; i<burnin; i++) {
+				for(j=0; j<burnin; j++) {
 					multi_tree_mcmc_iteration(logfp, &mcmc1, trees1, wses1);
 					multi_tree_mcmc_iteration(logfp, &mcmc2, trees2, wses2);
 				}
