@@ -6,8 +6,9 @@ def load_stabilities(filename):
     # If we load ALL the stability samples, we get an absurd
     # amount.  So let's randomly sample from 10 trees and then
     # take a random subsample of 500 points
-    with open(filename, "r") as fp:
-        stabs = [map(float, line) for line in [x.strip().split() for x in fp.readlines()]]
+    fp = open(filename, "r")
+    stabs = [map(float, line) for line in [x.strip().split() for x in fp.readlines()]]
+    fp.close()
     return stabs
     
 def parse_ubertree(filename):
