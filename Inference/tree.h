@@ -7,6 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gsl/gsl_rng.h>
+<<<<<<< HEAD
+#include <gsl/gsl_matrix.h>
+=======
+#include<gsl/gsl_matrix.h>
+>>>>>>> dfb46fa8349a0836e1f1f74e28984358b153f49a
 
 struct leafdata{
 	char *langname;
@@ -19,6 +24,8 @@ struct node{
 	char nodename[16];
 	float left_branch;
 	float right_branch;
+	gsl_matrix *left_P;
+	gsl_matrix *right_P;
 	float distance_from_root;
 	double age;
 	struct node *parent;
@@ -34,6 +41,7 @@ struct node{
 	int ready_to_feed;
 	int has_passed;
 	int has_cached[6];
+	int has_cached_matrices;
 	double cache[6];
 };
 typedef struct node node_t;

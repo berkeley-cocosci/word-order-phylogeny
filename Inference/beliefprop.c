@@ -22,17 +22,16 @@ void unpassed_detector(node_t *node) {
 }
 
 void reset_tree(node_t *node) {
-	int i;
 	node->ready_to_feed = 0;
 	node->has_passed = 0;
+	node->has_cached_matrices = 0;
 	node->got_left = 0;
 	node->got_right = 0;
+	node->has_cached_matrices = 0;
 	if(node->left_child == NULL && node->right_child == NULL) {
 		/* Leaves are ready to feed, and need their dist reset */
 		node->ready_to_feed = 1;
-		for(i=0; i<6; i++) {
-			node->dist[i] = node->l_message[i];
-		}
+		memcpy(node->dist, node->l_message, 6*sizeof(double));
 	} else {
 		memset(node->dist, 0, 6*sizeof(double));
 		memset(node->cache, 0, 6*sizeof(double));
@@ -310,115 +309,40 @@ void dist_printer(FILE *fp, node_t *node) {
 }
 
 long double get_tree_likelihood(FILE *fp, node_t *node, int value, gslws_t *ws) {
-	long double likelihood;
-	long double a, b, c, d;
-	int i, j;
-	int isleaf;
+	long double likelihood, left, right, a, b;
+	int i;
 
-	isleaf = 0;
-	if(node->left_child == NULL && node->right_child == NULL) isleaf = 1;
-	
-	//fprintf(fp, "get_tree_likelihood called with node = %p.\n", node);
-	//if(isleaf) fprintf(fp, "It's a leaf!\n");
-	if(value > 5) {
-		fprintf(fp, "get_tree_likelihood called with invalid value of %d at node %p\n.", value, node);
-		fprintf(fp, "Dying now.\n");
-		exit(666);
-	}
-	/* Check the cache first! */
 	if(node->has_cached[value]) {
-		//fprintf(fp, "Using cached value of %e for node at %p and word order %d.\n", node->cache[value], node, value);
-		if(!node->cache[value]) fprintf(fp, "Returning zero from cache, and leafiness is:%d!\n", (node->left_child == NULL && node->right_child == NULL) ? 1 : 0);
 		return node->cache[value];
 	}
-	
+
 	if(node->left_child == NULL && node->right_child == NULL) {
-		// Leaf
-		//fprintf(fp, "Leaf dist: %f, %f, %f, %f, %f, %f\n", node->dist[0], node->dist[1], node->dist[2], node->dist[3], node->dist[4], node->dist[5]);
-		//fprintf(fp, "Leaf l_message: %f, %f, %f, %f, %f, %f\n", node->l_message[0], node->l_message[1], node->l_message[2], node->l_message[3], node->l_message[4], node->l_message[5]);
-		likelihood = 0;
-		for(i=0; i<6; i++) {
-			if(node->l_message[i] == 1) {
-				if(i == value) likelihood = 1.0;
-			}
-		}
-//		printf("Leaf!\n");
-/*		for(i=0; i<6; i++) {
-			likelihood += node->dist[i]*node->l_message[i];
-			//fprintf(fp, "Running leaf likelihood: %Le\n", likelihood);
-		}
-		if(!likelihood) {
-			fprintf(fp, "I got a likelihood of zero for the leaf node at %p\n.", node);
-			fprintf(fp, "Dying now.\n");
-			exit(666);
-		}
-*/
+		likelihood = node->l_message[value] == 1 ? 1.0 : 0.0;
 	} else {
-		if(node->left_child == NULL) printf("Holy crap!  Missing left child!\n");
-		if(node->right_child == NULL) printf("Holy crap!  Missing right child!\n");
-		compute_p(ws, node->left_branch);
-		for(i=0; i<6; i++) {
-			node->left_child->dist[i] = gsl_matrix_get(ws->P, value, i);
-			if(node->left_child->dist[i] == 0.0) {
-				fprintf(fp, "I got a left child dist value of zero for word order %d from node %p with word order %d\n.", i, node, value);
-				fprintf(fp, "Dying now.\n");
-				exit(666);
-			}
+		if(! node->has_cached_matrices) {
+			compute_p(ws, node->left_branch);
+			gsl_matrix_memcpy(node->left_P, ws->P);
+			compute_p(ws, node->right_branch);
+			gsl_matrix_memcpy(node->right_P, ws->P);
+			node->has_cached_matrices = 1;
 		}
-		compute_p(ws, node->right_branch);
+		for(i=0; i<6; i++) node->left_child->dist[i] = gsl_matrix_get(node->left_P, value, i);
+		for(i=0; i<6; i++) node->right_child->dist[i] = gsl_matrix_get(node->right_P, value, i);
+		left = 0;
+		right = 0;
 		for(i=0; i<6; i++) {
-			node->right_child->dist[i] = gsl_matrix_get(ws->P, value, i);
-			if(node->right_child->dist[i] == 0.0) {
-				fprintf(fp, "I got a right child dist value of zero for word order %d from node %p with word order %d\n.", i, node, value);
-				fprintf(fp, "Dying now.\n");
-				exit(666);
-			}
+			a = node->left_child->dist[i];
+			b = get_tree_likelihood(fp, node->left_child, i, ws);
+			left += a*b;
+			a = node->right_child->dist[i];
+			b = get_tree_likelihood(fp, node->right_child, i, ws);
+			right += a*b;
 		}
-		likelihood = 0;
-		for(i=0; i<6; i++) {
-			for(j=0; j<6; j++) {
-				a = node->left_child->dist[i];
-				b = get_tree_likelihood(fp, node->left_child, i, ws);
-/*				if(b == 0.0) {
-					fprintf(fp, "I got a left subtree likelihood of zero for word order %d from node %p with word order %d\n.", i, node, value);
-					fprintf(fp, "Dying now.\n");
-					exit(666);
-				}
-*/
-				c = node->right_child->dist[j];
-				d = get_tree_likelihood(fp, node->right_child, j, ws);
-/*
-				if(d == 0.0) {
-					fprintf(fp, "I got a right subtree likelihood of zero for word order %d from node %p with word order %d\n.", j, node, value);
-					fprintf(fp, "Dying now.\n");
-					exit(666);
-				}
-*/
-				a = a*b*c*d;
-/*				if(a == 0.0) {
-					printf("Breakage!\n");
-					printf("Left dist is: %f.\n", node->left_child->dist[i]);
-					printf("Left subtree lh is: %Le.\n", b);
-					printf("Right dist is: %f.\n", node->right_child->dist[i]);
-					printf("Right subtree lh is: %Le.\n", d);
-					printf("Product is: %le.\n", a);
-				}
-*/
-				likelihood += a;
-			}
-		}
+		likelihood = left*right;
 	}
 
 	node->has_cached[value] = 1;
 	node->cache[value] = likelihood;
-	//fprintf(fp, "I have set a cache value of %Le for node %p and word order %d!\n", likelihood, node, value);
-	if(!likelihood && !isleaf) {
-		fprintf(fp, "I just poisoned the cache with a value of zero for a non-leaf!\n");
-		fprintf(fp, "Dying now.\n");
-		exit(666);
-	}
-//	printf("Set cache to %e\n!", node->cache[value]);
-
 	return likelihood;
 }
 

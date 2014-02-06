@@ -57,6 +57,7 @@ void compute_multi_tree_probabilities(mcmc_t *mcmc, node_t **trees, gslws_t *wse
 	mcmc->log_prior = get_log_prior(mcmc->stabs, mcmc->trans);
 	mcmc->log_lh = 0;
 	for(i=0; i<6; i++) mcmc->log_lh += get_model_loglh(trees[i], mcmc->Q, &wses[i]);
+	printf("Got final log: %f\n", mcmc->log_lh);
 	mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
 }
 

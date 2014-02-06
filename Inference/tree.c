@@ -416,6 +416,8 @@ node_t *build_tree(char *treefile, char *leaffile, int shuffle_leaves, gsl_rng *
 			nodes[j].has_cached[k] = 0;
 			nodes[j].cache[k] = 0.0;
 		}
+		nodes[j].left_P = gsl_matrix_alloc(6, 6);
+		nodes[j].right_P = gsl_matrix_alloc(6, 6);
 	}
 	populate_nodes(nodes, leafdata, treefile);
 	unknown_data_leafectomy(&nodes[0]);

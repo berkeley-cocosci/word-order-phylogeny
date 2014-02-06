@@ -266,7 +266,6 @@ void save_indiv_q(char *directory, sampman_t *sm) {
 }
 
 void save_common_q(char *directory, sampman_t *sms) {
-	double log_prior, log_lh, log_poster;
 	char filename[1024];
 	FILE *fp;
 	int i, j;
