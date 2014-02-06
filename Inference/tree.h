@@ -7,11 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gsl/gsl_rng.h>
-<<<<<<< HEAD
 #include <gsl/gsl_matrix.h>
-=======
 #include<gsl/gsl_matrix.h>
->>>>>>> dfb46fa8349a0836e1f1f74e28984358b153f49a
 
 struct leafdata{
 	char *langname;
