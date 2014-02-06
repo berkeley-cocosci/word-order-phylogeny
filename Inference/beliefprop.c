@@ -25,6 +25,7 @@ void reset_tree(node_t *node) {
 	int i;
 	node->ready_to_feed = 0;
 	node->has_passed = 0;
+	node->has_cached_matrices = 0;
 	node->got_left = 0;
 	node->got_right = 0;
 	if(node->left_child == NULL && node->right_child == NULL) {
@@ -323,10 +324,15 @@ long double get_tree_likelihood(FILE *fp, node_t *node, int value, gslws_t *ws) 
 	if(node->left_child == NULL && node->right_child == NULL) {
 		likelihood = node->l_message[value] == 1 ? 1.0 : 0.0;
 	} else {
-		compute_p(ws, node->left_branch);
-		for(i=0; i<6; i++) node->left_child->dist[i] = gsl_matrix_get(ws->P, value, i);
-		compute_p(ws, node->right_branch);
-		for(i=0; i<6; i++) node->right_child->dist[i] = gsl_matrix_get(ws->P, value, i);
+		if(! node->has_cached_matrices) {
+			compute_p(ws, node->left_branch);
+			gsl_matrix_memcpy(node->left_P, ws->P);
+			compute_p(ws, node->right_branch);
+			gsl_matrix_memcpy(node->right_P, ws->P);
+			node->has_cached_matrices = 1;
+		}
+		for(i=0; i<6; i++) node->left_child->dist[i] = gsl_matrix_get(node->left_P, value, i);
+		for(i=0; i<6; i++) node->right_child->dist[i] = gsl_matrix_get(node->right_P, value, i);
 		left = 0;
 		right = 0;
 		for(i=0; i<6; i++) {
