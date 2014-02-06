@@ -314,8 +314,8 @@ long double get_tree_likelihood(FILE *fp, node_t *node, int value, gslws_t *ws) 
 	long double likelihood;
 	long double left;
 	long double right;
-	long double a, b, c, d, x;
-	int i, j;
+	long double a, b;
+	int i;
 
 	if(node->has_cached[value]) {
 		return node->cache[value];
