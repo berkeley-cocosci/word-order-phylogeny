@@ -27,13 +27,11 @@ void reset_tree(node_t *node) {
 	node->has_cached_matrices = 0;
 	node->got_left = 0;
 	node->got_right = 0;
+	node->has_cached_matrices = 0;
 	if(node->left_child == NULL && node->right_child == NULL) {
 		/* Leaves are ready to feed, and need their dist reset */
 		node->ready_to_feed = 1;
 		memcpy(node->dist, node->l_message, 6*sizeof(double));
-//		for(i=0; i<6; i++) {
-//			node->dist[i] = node->l_message[i];
-//		}
 	} else {
 		memset(node->dist, 0, 6*sizeof(double));
 		memset(node->cache, 0, 6*sizeof(double));
@@ -311,10 +309,7 @@ void dist_printer(FILE *fp, node_t *node) {
 }
 
 long double get_tree_likelihood(FILE *fp, node_t *node, int value, gslws_t *ws) {
-	long double likelihood;
-	long double left;
-	long double right;
-	long double a, b;
+	long double likelihood, left, right, a, b;
 	int i;
 
 	if(node->has_cached[value]) {
