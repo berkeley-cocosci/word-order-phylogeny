@@ -22,7 +22,6 @@ void unpassed_detector(node_t *node) {
 }
 
 void reset_tree(node_t *node) {
-	int i;
 	node->ready_to_feed = 0;
 	node->has_passed = 0;
 	node->has_cached_matrices = 0;
@@ -31,9 +30,10 @@ void reset_tree(node_t *node) {
 	if(node->left_child == NULL && node->right_child == NULL) {
 		/* Leaves are ready to feed, and need their dist reset */
 		node->ready_to_feed = 1;
-		for(i=0; i<6; i++) {
-			node->dist[i] = node->l_message[i];
-		}
+		memcpy(node->dist, node->l_message, 6*sizeof(double));
+//		for(i=0; i<6; i++) {
+//			node->dist[i] = node->l_message[i];
+//		}
 	} else {
 		memset(node->dist, 0, 6*sizeof(double));
 		memset(node->cache, 0, 6*sizeof(double));
