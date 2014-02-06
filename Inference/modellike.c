@@ -37,9 +37,13 @@ double get_model_loglh(node_t *tree, gsl_matrix *Q, gslws_t *ws) {
 	// Clean up from last time
 	reset_tree(tree);
 	// Set root prior
-	for(i=0; i<6; i++) tree->dist[i] = 1.0/6.0;
-	compute_likelihood(tree, &likelihood, ws);
-	return likelihood;
+	likelihood = 0;
+	for(i=0; i<6; i++) likelihood += get_tree_likelihood(NULL, tree, i, ws);
+	likelihood *= (1.0/6.0);
+//	likelihood = 1.0/6.0*get_tree_likelihood(NULL, tree, 0, ws);
+//	for(i=0; i<6; i++) tree->dist[i] = 1.0/6.0;
+//	compute_likelihood(tree, &likelihood, ws);
+	return log(likelihood);
 }
 
 void compute_likelihood(node_t *node, double *likelihood, gslws_t *ws) {
