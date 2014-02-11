@@ -18,14 +18,18 @@
 #include "tree.h"
 #include "wordorders.h"
 
-void generate_random_mutation_model(mcmc_t *mcmc) {
+void generate_random_mutation_model(mcmc_t *mcmc, int root, double rootstab) {
 	int i;
 
         initialise_stabs(mcmc, 1.0);
         initialise_trans(mcmc);
-	for(i=0; i<25; i++) {
+	/* Randomly sample stab params from prior */
+	for(i=0; i<6; i++) gsl_vector_set(mcmc->stabs, i, gsl_ran_exponential(mcmc->r, 3.0));
+	/* Overwrite root stab param with specified value */
+	gsl_vector_set(mcmc->stabs, root, rootstab);
+	/* Set transition probabilities by accepting many proposals */
+	for(i=0; i<100; i++) {
 		draw_proposal(mcmc);
-		gsl_vector_memcpy(mcmc->stabs, mcmc->stabs_dash);
 		gsl_matrix_memcpy(mcmc->trans, mcmc->trans_dash);
 	}
 }
@@ -168,9 +172,10 @@ int main(int argc, char **argv) {
 	FILE *fp;
 	//int fp;
 	int i, j, c;
-	int rootorder, random_mutation;
+	int rootorder, random_root_order, random_mutation;
 	char *treefile, *leaffile, *mutfile, *outfile, *filename;
 	char rootorderstr[64];
+	double rootstab;
 	unsigned long int seed;
 	node_t *tree;
 	double likelihood, prior, posterior, max_likelihood = 0;
@@ -199,11 +204,13 @@ int main(int argc, char **argv) {
 	leaffile = "leafdata";
 	mutfile = "mutationmodel";
 	outfile = "generated_";
+	random_root_order = 1;
 	rootorder = SOV;
 	random_mutation = 0;
-	while((c = getopt(argc, argv, "a:r:t:l:m:o:x")) != -1) {
+	while((c = getopt(argc, argv, "a:r:s:t:l:m:o:x")) != -1) {
 		switch(c) {
 			case 'r':
+				random_root_order = 0;
 				for(i=0; optarg[i]; i++) {
 					optarg[i] = tolower(optarg[i]);
 				}
@@ -225,6 +232,9 @@ int main(int argc, char **argv) {
 					printf("Unrecognised root word order, using SOV\n");
 					rootorder = SOV;
 				}
+				break;
+			case 's':
+				rootstab = atof(optarg);
 				break;
 			case 't':
 				treefile = optarg;
@@ -249,7 +259,7 @@ int main(int argc, char **argv) {
 
 	if(random_mutation) {
 		printf("Generating random mutation model...\n");
-		generate_random_mutation_model(&mcmc);
+		generate_random_mutation_model(&mcmc, rootorder, rootstab);
 	} else {
 		printf("Reading mutation model...\n");
 		read_mutation_model(mutfile, mcmc.stabs, mcmc.trans);
@@ -263,14 +273,16 @@ int main(int argc, char **argv) {
         decompose_q(mcmc.Q, &ws);
 	compute_p(&ws, 1000000);
 	cutoff = gsl_rng_uniform(mcmc.r);
-	rootorder = 0;
-	cumul = gsl_matrix_get(ws.P, 0, 0);
-	while(cumul < cutoff) {
-		printf("Cutoff: %f\n", cutoff);
-		printf("Cumul: %f\n", cumul);
-		printf("Root: %d\n", rootorder);
-		rootorder++;
-		cumul += gsl_matrix_get(ws.P,0, rootorder);
+	if(random_root_order) {
+		rootorder = 0;
+		cumul = gsl_matrix_get(ws.P, 0, 0);
+		while(cumul < cutoff) {
+			printf("Cutoff: %f\n", cutoff);
+			printf("Cumul: %f\n", cumul);
+			printf("Root: %d\n", rootorder);
+			rootorder++;
+			cumul += gsl_matrix_get(ws.P,0, rootorder);
+		}
 	}
 
 	printf("Saving Q matrix...\n");
@@ -281,7 +293,7 @@ int main(int argc, char **argv) {
 	fclose(fp);
 
 	printf("Building tree...\n");
-	tree = build_tree(treefile, leaffile);
+	tree = build_tree(treefile, leaffile, 0, NULL);
 
 	printf("Evolving on tree...\n");
 	evolve_on_tree(tree, rootorder, &mcmc, &ws); 
