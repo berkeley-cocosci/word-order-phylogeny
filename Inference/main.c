@@ -18,6 +18,7 @@
 #include "sampman.h"
 #include "ubertree.h"
 
+
 void do_single_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t *tree, gslws_t *ws, sampman_t *sm, int burnin, int samples, int lag) {
 	int i, j;
 	/* Burn in */
@@ -67,6 +68,35 @@ void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t 
 		}
 		if(ut != NULL) update_ubertree(ut, trees, mcmc->Q, &wses[0]);
 	}
+}
+
+void bespoke(char *treefile, char *leaffile, int burnin, int samples, int lag, char *outdir, int logging) {
+	FILE *logfp;
+	node_t *tree;
+	mcmc_t mcmc;
+	gslws_t ws;
+	sampman_t sm;
+
+	// Open log file
+	if(logging) {
+		logfp = fopen("logfile", "w");
+	} else {
+		logfp = fopen("/dev/null", "w");
+	}
+
+	initialise_mcmc(&mcmc);
+	initialise_sampman(&sm, outdir);
+	alloc_gslws(&ws);
+	// Compute stability sampling rate
+	sm.stability_sampling_rate = samples / 500.0;
+
+	tree = build_tree(treefile, leaffile, 0, NULL);
+	compute_single_tree_probabilities(&mcmc, tree, &ws);
+	do_single_tree_inference(logfp, &mcmc, tree, &ws, &sm, burnin, samples, lag);
+	free(tree);
+	compute_means(&sm);
+	save_indiv_q(outdir, &sm);
+	fclose(logfp);
 }
 
 void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, int treecount, char *outdir, int logging) {
@@ -222,6 +252,8 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 
 		gsl_matrix_set_zero(q1);
 		gsl_matrix_set_zero(q2);
+		memset(anccorrel1, 0, 6*sizeof(double));
+		memset(anccorrel2, 0, 6*sizeof(double));
 		/* Take samples */
 		for(i=0; i<samples; i++) {
 			if(gsl_rng_uniform_int(mcmc1.r, 10000) >= 9999) {
@@ -328,8 +360,9 @@ int main(int argc, char **argv) {
 	int c;
 	int logging = 0;
 	int multitree, treeclass, shuffle, split;
-	char *outbase;
+	char *outbase, *treefile, *leaffile;
 	char outdir[1024];
+
 	int burnin, lag, samples;
 	int treecount;
 
@@ -344,7 +377,9 @@ int main(int argc, char **argv) {
 	samples = 1000;
 	treecount = 100;
 	outbase = "./results";
-	while((c = getopt(argc, argv, "b:c:i:l:ms:St:o:Lx")) != -1) {
+	treefile = NULL;
+	leaffile = NULL;
+	while((c = getopt(argc, argv, "b:c:i:l:ms:St:T:o:L:xv")) != -1) {
 		switch(c) {
 			case 'b':
 				burnin = atoi(optarg);
@@ -359,6 +394,10 @@ int main(int argc, char **argv) {
 				*/
 			case 'l':
 				lag = atoi(optarg);
+				break;
+			case 'L':
+				leaffile = optarg;
+				ambiguous = 0;
 				break;
 			case 'm':
 				multitree = 1;
@@ -375,10 +414,14 @@ int main(int argc, char **argv) {
 			case 't':
 				treecount = atoi(optarg);
 				break;
+			case 'T':
+				treefile = optarg;
+				ambiguous = 0;
+				break;
 			case 'o':
 				outbase = optarg;
 				break;
-			case 'L':
+			case 'v':
 				logging = 1;
 				break;
 		}
@@ -389,7 +432,10 @@ int main(int argc, char **argv) {
 		exit(0);
 	}
 
-	if(multitree && !split) {
+	if(treefile && leaffile) {
+		printf("Performing bespoke inference!");
+		bespoke(treefile, leaffile, burnin, samples, lag, outbase, logging);
+	} else if(multitree && !split) {
 		printf("Performing inference with one Q shared among all families.\n");
 		sprintf(outdir, outbase);
 		strcat(outdir, "/common-q/unsplit/");
