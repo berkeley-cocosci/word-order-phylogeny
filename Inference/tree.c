@@ -380,6 +380,7 @@ void unknown_data_leafectomy(node_t *root) {
 				if(listhead[i]->l_message[j]) knowndata = 1;
 			}
 			if(!knowndata) {
+				printf("Killing leaf with no data!\n");
 				perfection = 0;
 				if(listhead[i]->parent->left_child == listhead[i])  listhead[i]->parent->left_child = NULL;
 				if(listhead[i]->parent->right_child == listhead[i]) listhead[i]->parent->right_child = NULL;
@@ -463,4 +464,38 @@ void load_tree(node_t **tree, char *dir, int method, int family, int treeindex, 
 	(*tree)->age = age;
 	// Reset
 	reset_tree(*tree);
+}
+
+void find_leaves(node_t *node, node_t **leaves, int *leafindex) {
+	if(node->left_child == NULL && node->right_child == NULL) {
+		/* It's a leaf! */
+		leaves[*leafindex] = node;
+		(*leafindex)++;
+	} else {
+		find_leaves(node->left_child, leaves, leafindex);
+		find_leaves(node->right_child, leaves, leafindex);
+	}
+}
+
+void subsample(node_t ***trees, gsl_rng *r) {
+	double survival_rates[6] = {1.0,0.4,0.4,0.4,0.75,0.85};
+	int leafcount, i, j;
+	/* Make a leaf list large enough for the largest family, Niger-Congo */
+	node_t **leaves = calloc(197, sizeof(node_t*));
+	for(i=0; i<6; i++) {
+		/* Find all leaf nodes */
+		leafcount = 0;
+		find_leaves((*trees)[i], leaves, &leafcount);
+		/* Shuffle leaf list */
+		gsl_ran_shuffle(r, leaves, leafcount, sizeof(node_t*));
+		/* Iterate over list, randomly dropping data */
+		for(j=0; j<leafcount; j++) {
+			if(gsl_rng_uniform(r) > survival_rates[i]) {
+				memset(leaves[j]->l_message, 0, 6*sizeof(double));
+			}
+		}
+		/* Remove leaf nodes with missing data from tree */
+		unknown_data_leafectomy((*trees)[i]);
+	}
+
 }

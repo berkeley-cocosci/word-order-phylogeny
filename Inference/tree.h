@@ -58,5 +58,6 @@ void double_branch_fixer(node_t *node);
 void verify_tree_goodness(node_t *node);
 void unknown_data_leafectomy(node_t *root);
 node_t *build_tree(char *treefile, char *leaffile, int shuffle_leaves, gsl_rng *r);
+void subsample(node_t ***trees, gsl_rng *r);
 
 #endif /* TREE_H */

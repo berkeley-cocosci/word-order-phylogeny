@@ -130,6 +130,8 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	for(treeindex=0; treeindex<treecount; treeindex++) {
 		/* Build tree(s) */
 		for(i=0; i<6; i++) load_tree(&trees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
+		/* Subsample languages to match global statistics */
+		subsample(&trees, mcmc.r);
 		/* Draw samples for this tree (set) */
 		compute_multi_tree_probabilities(&mcmc, trees, wses);
 		do_multi_tree_inference(logfp, &mcmc, trees, wses, sms, &ut, burnin, samples, lag);
@@ -240,6 +242,9 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 			load_tree(&trees1[i], "../TreeBuilder/generated_trees/split/1/", method, i, treeindex, shuffle);
 			load_tree(&trees2[i], "../TreeBuilder/generated_trees/split/2/", method, i, treeindex, shuffle);
 		}
+		/* Subsample languages to match global statistics */
+		subsample(&trees1, mcmc1.r);
+		subsample(&trees2, mcmc2.r);
 		/* Draw samples for this tree (set) */
 		compute_multi_tree_probabilities(&mcmc1, trees1, wses1);
 		compute_multi_tree_probabilities(&mcmc2, trees2, wses2);
