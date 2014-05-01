@@ -380,7 +380,6 @@ void unknown_data_leafectomy(node_t *root) {
 				if(listhead[i]->l_message[j]) knowndata = 1;
 			}
 			if(!knowndata) {
-				printf("Killing leaf with no data!\n");
 				perfection = 0;
 				if(listhead[i]->parent->left_child == listhead[i])  listhead[i]->parent->left_child = NULL;
 				if(listhead[i]->parent->right_child == listhead[i]) listhead[i]->parent->right_child = NULL;
