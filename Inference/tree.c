@@ -323,7 +323,26 @@ void double_branch_fixer(node_t *node) {
 	if(node->left_child != NULL) childcount++;
 	if(node->right_child != NULL) childcount++;
 	if(childcount == 1) {
-		if(node->parent->left_child == node) {
+		if(node->parent == NULL) {
+			/* We've killed a childless child of the root! */
+			/* Now our tree is pretty messed up... */
+			/* Which branch has a child? */
+			if(node->left_child == NULL) {
+				node->left_child = node->right_child->left_child;
+				node->left_child->parent = node;
+				node->left_branch = node->right_branch + node->right_child->left_branch;
+				node->right_branch += node->right_child->right_branch;
+				node->right_child = node->right_child->right_child;
+				node->right_child->parent = node;
+			} else {
+				node->right_child = node->left_child->right_child;
+				node->right_child->parent = node;
+				node->right_branch = node->left_branch + node->left_child->right_branch;
+				node->left_branch += node->left_child->left_branch;
+				node->left_child = node->left_child->left_child;
+				node->left_child->parent = node;
+			}
+		} else if(node->parent->left_child == node) {
 			if(node->left_child != NULL) {
 				node->parent->left_child = node->left_child;
 				node->parent->left_branch += node->left_branch;
@@ -333,8 +352,7 @@ void double_branch_fixer(node_t *node) {
 				node->parent->left_branch += node->right_branch;
 				node->right_child->parent = node->parent;
 			}
-		}
-		if(node->parent->right_child == node) {
+		} else if(node->parent->right_child == node) {
 			if(node->left_child != NULL) {
 				node->parent->right_child = node->left_child;
 				node->parent->right_branch += node->left_branch;
