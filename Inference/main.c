@@ -44,29 +44,29 @@ void do_single_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t *tree, gslws_t *
 	}
 }
 
-void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **trees, gslws_t *wses, sampman_t *sms, ubertree_t *ut, int burnin, int samples, int lag) {
+void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **subtrees, node_t **wholetrees, gslws_t *wses, sampman_t *sms, ubertree_t *ut, int burnin, int samples, int lag) {
 	int i, j;
 	/* Burn in */
-	for(i=0; i<burnin; i++) multi_tree_mcmc_iteration(logfp, mcmc, trees, wses);
+	for(i=0; i<burnin; i++) multi_tree_mcmc_iteration(logfp, mcmc, subtrees, wses);
 	/* Take samples */
 	for(i=0; i<samples; i++) {
 		if(gsl_rng_uniform_int(mcmc->r, 10000) >= 9999) {
 			/* Random restart! */
 			random_restart(mcmc);
-			compute_multi_tree_probabilities(mcmc, trees, wses);
-			for(j=0; j<burnin; j++) multi_tree_mcmc_iteration(logfp, mcmc, trees, wses);
+			compute_multi_tree_probabilities(mcmc, subtrees, wses);
+			for(j=0; j<burnin; j++) multi_tree_mcmc_iteration(logfp, mcmc, subtrees, wses);
 		}
 
 		for(j=0; j<lag; j++) {
-			multi_tree_mcmc_iteration(logfp, mcmc, trees, wses);
+			multi_tree_mcmc_iteration(logfp, mcmc, subtrees, wses);
 		}
 
 		build_q(mcmc);
 		for(j=0; j<6; j++) {
-			upwards_belprop(logfp, trees[j], mcmc->Q, &wses[j]);
-			process_sample(&sms[j], mcmc, &wses[j], trees[j]);
+			upwards_belprop(logfp, wholetrees[j], mcmc->Q, &wses[j]);
+			process_sample(&sms[j], mcmc, &wses[j], wholetrees[j]);
 		}
-		if(ut != NULL) update_ubertree(ut, trees, mcmc->Q, &wses[0]);
+		if(ut != NULL) update_ubertree(ut, wholetrees, mcmc->Q, &wses[0]);
 	}
 }
 
@@ -105,6 +105,7 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	char methods[][16] = {"geographic", "genetic", "feature", "combination" };
 	char filename[1024];
 	node_t **trees = calloc(6, sizeof(node_t*));
+	node_t **subtrees = calloc(6, sizeof(node_t*));
 	mcmc_t mcmc;
 	gslws_t *wses = calloc(6, sizeof(gslws_t));
 	sampman_t *sms = calloc(6, sizeof(sampman_t));
@@ -130,11 +131,12 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	for(treeindex=0; treeindex<treecount; treeindex++) {
 		/* Build tree(s) */
 		for(i=0; i<6; i++) load_tree(&trees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
+		for(i=0; i<6; i++) load_tree(&subtrees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
 		/* Subsample languages to match global statistics */
-		subsample(&trees, mcmc.r);
+		subsample(&subtrees, mcmc.r);
 		/* Draw samples for this tree (set) */
-		compute_multi_tree_probabilities(&mcmc, trees, wses);
-		do_multi_tree_inference(logfp, &mcmc, trees, wses, sms, &ut, burnin, samples, lag);
+		compute_multi_tree_probabilities(&mcmc, subtrees, wses);
+		do_multi_tree_inference(logfp, &mcmc, subtrees, trees, wses, sms, &ut, burnin, samples, lag);
 		/* Free up tree memory */
 		for(i=0; i<6; i++) free(trees[i]);
 	}
@@ -202,7 +204,9 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	char filename[1024];
 	char methods[][16] = {"geographic", "genetic", "feature", "combination" };
 	node_t **trees1 = calloc(6, sizeof(node_t*));
+	node_t **subtrees1 = calloc(6, sizeof(node_t*));
 	node_t **trees2 = calloc(6, sizeof(node_t*));
+	node_t **subtrees2 = calloc(6, sizeof(node_t*));
 	mcmc_t mcmc1, mcmc2;
 	gslws_t *wses1 = calloc(6, sizeof(gslws_t));
 	gslws_t *wses2 = calloc(6, sizeof(gslws_t));
@@ -240,19 +244,21 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 		/* Build tree(s) */
 		for(i=0; i<6; i++) {
 			load_tree(&trees1[i], "../TreeBuilder/generated_trees/split/1/", method, i, treeindex, shuffle);
+			load_tree(&subtrees1[i], "../TreeBuilder/generated_trees/split/1/", method, i, treeindex, shuffle);
 			load_tree(&trees2[i], "../TreeBuilder/generated_trees/split/2/", method, i, treeindex, shuffle);
+			load_tree(&subtrees2[i], "../TreeBuilder/generated_trees/split/2/", method, i, treeindex, shuffle);
 		}
 		/* Subsample languages to match global statistics */
-		subsample(&trees1, mcmc1.r);
-		subsample(&trees2, mcmc2.r);
+		subsample(&subtrees1, mcmc1.r);
+		subsample(&subtrees2, mcmc2.r);
 		/* Draw samples for this tree (set) */
-		compute_multi_tree_probabilities(&mcmc1, trees1, wses1);
-		compute_multi_tree_probabilities(&mcmc2, trees2, wses2);
+		compute_multi_tree_probabilities(&mcmc1, subtrees1, wses1);
+		compute_multi_tree_probabilities(&mcmc2, subtrees2, wses2);
 
 		/* Burn in */
 		for(i=0; i<burnin; i++) {
-			multi_tree_mcmc_iteration(logfp, &mcmc1, trees1, wses1);
-			multi_tree_mcmc_iteration(logfp, &mcmc2, trees2, wses2);
+			multi_tree_mcmc_iteration(logfp, &mcmc1, subtrees1, wses1);
+			multi_tree_mcmc_iteration(logfp, &mcmc2, subtrees2, wses2);
 		}
 
 		gsl_matrix_set_zero(q1);
@@ -265,17 +271,17 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 				/* Random restart! */
 				random_restart(&mcmc1);
 				random_restart(&mcmc2);
-				compute_multi_tree_probabilities(&mcmc1, trees1, wses1);
-				compute_multi_tree_probabilities(&mcmc2, trees2, wses2);
+				compute_multi_tree_probabilities(&mcmc1, subtrees1, wses1);
+				compute_multi_tree_probabilities(&mcmc2, subtrees2, wses2);
 				for(j=0; j<burnin; j++) {
-					multi_tree_mcmc_iteration(logfp, &mcmc1, trees1, wses1);
-					multi_tree_mcmc_iteration(logfp, &mcmc2, trees2, wses2);
+					multi_tree_mcmc_iteration(logfp, &mcmc1, subtrees1, wses1);
+					multi_tree_mcmc_iteration(logfp, &mcmc2, subtrees2, wses2);
 				}
 			}
 
 			for(j=0; j<lag; j++) {
-				multi_tree_mcmc_iteration(logfp, &mcmc1, trees1, wses1);
-				multi_tree_mcmc_iteration(logfp, &mcmc2, trees2, wses2);
+				multi_tree_mcmc_iteration(logfp, &mcmc1, subtrees1, wses1);
+				multi_tree_mcmc_iteration(logfp, &mcmc2, subtrees2, wses2);
 			}
 
 			build_q(&mcmc1);
@@ -319,7 +325,9 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 		/* Free up tree memory */
 		for(i=0; i<6; i++) {
 			free(trees1[i]);
+			free(subtrees1[i]);
 			free(trees2[i]);
+			free(subtrees2[i]);
 		}
 	}
 	qcorrelation /= treecount;
