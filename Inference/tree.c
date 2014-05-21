@@ -495,7 +495,7 @@ void find_leaves(node_t *node, node_t **leaves, int *leafindex) {
 }
 
 void subsample(node_t ***trees, gsl_rng *r) {
-	double survival_rates[6] = {1.0,0.47,0.64,0.77,1.0,0.62};
+	double survival_rates[6] = {0.37,0.30,1.00,0.30,0.49,1.00};
 	int leafcount, i, j;
 	/* Make a leaf list large enough for the largest family, Niger-Congo */
 	node_t **leaves = calloc(197, sizeof(node_t*));
