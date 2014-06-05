@@ -70,6 +70,32 @@ void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **subtrees, node_
 	}
 }
 
+void do_balanced_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **subtrees, node_t **wholetrees, gslws_t *wses, sampman_t *sms, ubertree_t *ut, int burnin, int samples, int lag) {
+	int i, j;
+	/* Burn in */
+	for(i=0; i<burnin; i++) balanced_multi_tree_mcmc_iteration(logfp, mcmc, subtrees, wses);
+	/* Take samples */
+	for(i=0; i<samples; i++) {
+		if(gsl_rng_uniform_int(mcmc->r, 10000) >= 9999) {
+			/* Random restart! */
+			random_restart(mcmc);
+			compute_balanced_multi_tree_probabilities(mcmc, subtrees, wses);
+			for(j=0; j<burnin; j++) balanced_multi_tree_mcmc_iteration(logfp, mcmc, subtrees, wses);
+		}
+
+		for(j=0; j<lag; j++) {
+			balanced_multi_tree_mcmc_iteration(logfp, mcmc, subtrees, wses);
+		}
+
+		build_q(mcmc);
+		for(j=0; j<6; j++) {
+			upwards_belprop(logfp, wholetrees[j], mcmc->Q, &wses[j]);
+			process_sample(&sms[j], mcmc, &wses[j], wholetrees[j]);
+		}
+		if(ut != NULL) update_ubertree(ut, wholetrees, mcmc->Q, &wses[0]);
+	}
+}
+
 void bespoke(char *treefile, char *leaffile, int burnin, int samples, int lag, char *outdir, int logging) {
 	FILE *logfp;
 	node_t *tree;
@@ -133,10 +159,61 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 		for(i=0; i<6; i++) load_tree(&trees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
 		for(i=0; i<6; i++) load_tree(&subtrees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
 		/* Subsample languages to match global statistics */
-		subsample(&subtrees, mcmc.r);
+		//subsample(&subtrees, mcmc.r);
 		/* Draw samples for this tree (set) */
 		compute_multi_tree_probabilities(&mcmc, subtrees, wses);
 		do_multi_tree_inference(logfp, &mcmc, subtrees, trees, wses, sms, &ut, burnin, samples, lag);
+		/* Free up tree memory */
+		for(i=0; i<6; i++) free(trees[i]);
+	}
+
+	// Finish up
+	for(i=0; i<6; i++) compute_means(&sms[i]);
+	sprintf(filename, "%s/%s/", outdir, methods[method]);
+	save_common_q(filename, sms);
+	save_ubertree(&ut, filename);
+	fclose(logfp);
+}
+
+void balanced_whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, int treecount, char *outdir, int logging) {
+	FILE *logfp;
+	int treeindex, i;
+	char methods[][16] = {"geographic", "genetic", "feature", "combination" };
+	char filename[1024];
+	node_t **trees = calloc(6, sizeof(node_t*));
+	node_t **subtrees = calloc(6, sizeof(node_t*));
+	mcmc_t mcmc;
+	gslws_t *wses = calloc(6, sizeof(gslws_t));
+	sampman_t *sms = calloc(6, sizeof(sampman_t));
+	ubertree_t ut;
+
+	// Open log file
+	if(logging) {
+		logfp = fopen("logfile", "w");
+	} else {
+		logfp = fopen("/dev/null", "w");
+	}
+
+	initialise_mcmc(&mcmc);
+	initialise_ubertree(&ut);
+
+	for(i=0; i<6; i++) {
+		alloc_gslws(&wses[i]);
+		initialise_sampman(&sms[i], outdir);
+		sms[i].stability_sampling_rate = (treecount*samples) / 500;
+	}
+
+	// Loop over trees...
+	for(treeindex=0; treeindex<treecount; treeindex++) {
+		mcmc.dummy_tree_age = (55000+gsl_ran_gaussian(mcmc.r, 2500)) / 10000.0;
+		/* Build tree(s) */
+		for(i=0; i<6; i++) load_tree(&trees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
+		for(i=0; i<6; i++) load_tree(&subtrees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
+		/* Subsample languages to match global statistics */
+		//subsample(&subtrees, mcmc.r);
+		/* Draw samples for this tree (set) */
+		compute_balanced_multi_tree_probabilities(&mcmc, subtrees, wses);
+		do_balanced_multi_tree_inference(logfp, &mcmc, subtrees, trees, wses, sms, &ut, burnin, samples, lag);
 		/* Free up tree memory */
 		for(i=0; i<6; i++) free(trees[i]);
 	}
@@ -372,7 +449,7 @@ int main(int argc, char **argv) {
 	uint8_t ambiguous = 1;
 	int c;
 	int logging = 0;
-	int multitree, treeclass, shuffle, split;
+	int balanced, multitree, treeclass, shuffle, split;
 	char *outbase, *treefile, *leaffile;
 	char outdir[1024];
 
@@ -381,6 +458,7 @@ int main(int argc, char **argv) {
 
 	// Option parsing
 	// defaults
+	balanced = 0;
 	shuffle = 0;
 	treeclass = 0;
 	multitree = 0;
@@ -392,10 +470,13 @@ int main(int argc, char **argv) {
 	outbase = "./results";
 	treefile = NULL;
 	leaffile = NULL;
-	while((c = getopt(argc, argv, "b:c:i:l:ms:St:T:o:L:xv")) != -1) {
+	while((c = getopt(argc, argv, "b:Bc:i:l:ms:St:T:o:L:xv")) != -1) {
 		switch(c) {
 			case 'b':
 				burnin = atoi(optarg);
+				break;
+			case 'B':
+				balanced = 1;
 				break;
 			case 'c':
 				treeclass = atoi(optarg);
@@ -446,9 +527,19 @@ int main(int argc, char **argv) {
 	}
 
 	if(treefile && leaffile) {
+
 		printf("Performing bespoke inference!");
 		bespoke(treefile, leaffile, burnin, samples, lag, outbase, logging);
+
+	} else if(balanced) {
+
+		printf("Performing inference with one Q shared among all families, with counter-balancing languages.\n");
+		sprintf(outdir, outbase);
+		strcat(outdir, "/balanced-common-q/");
+		balanced_whole_shared_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
+
 	} else if(multitree && !split) {
+
 		printf("Performing inference with one Q shared among all families.\n");
 		sprintf(outdir, outbase);
 		strcat(outdir, "/common-q/unsplit/");
@@ -458,7 +549,9 @@ int main(int argc, char **argv) {
 			strcat(outdir, "/unshuffled/");
 		}
 		whole_shared_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
+
 	} else if(multitree && split) {
+
 		printf("Performing inference with one Q shared among all families, with trees split in half.\n");
 		sprintf(outdir, outbase);
 		strcat(outdir, "/common-q/split/");
@@ -468,6 +561,7 @@ int main(int argc, char **argv) {
 			strcat(outdir, "/unshuffled/");
 		}
 		split_shared_q(treeclass, shuffle, burnin, samples, lag, treecount, outdir, logging);
+
 	} else if(!multitree && !split) {
 		printf("Performing inference with individual Qs per family.\n");
 		sprintf(outdir, outbase);

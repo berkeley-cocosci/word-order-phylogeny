@@ -55,12 +55,20 @@ void compute_single_tree_probabilities(mcmc_t *mcmc, node_t *tree, gslws_t *ws) 
 void compute_multi_tree_probabilities(mcmc_t *mcmc, node_t **trees, gslws_t *wses) {
 	uint8_t i;
 	mcmc->log_prior = get_log_prior(mcmc->stabs, mcmc->trans);
-	mcmc->log_lh = 0;
+	mcmc->log_lh = 0.0;
 	for(i=0; i<6; i++) mcmc->log_lh += get_model_loglh(trees[i], mcmc->Q, &wses[i]);
 	printf("Got final log: %f\n", mcmc->log_lh);
 	mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
 }
 
+void compute_balanced_multi_tree_probabilities(mcmc_t *mcmc, node_t **trees, gslws_t *wses) {
+	uint8_t i;
+	mcmc->log_prior = get_log_prior(mcmc->stabs, mcmc->trans);
+	mcmc->log_lh = dummy_tree_log_lh(mcmc, &wses[0]);
+	for(i=0; i<6; i++) mcmc->log_lh += get_model_loglh(trees[i], mcmc->Q, &wses[i]);
+	printf("Got final log: %f\n", mcmc->log_lh);
+	mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
+}
 void random_restart(mcmc_t *mcmc) {
 	uint8_t i;
 	initialise_stabs(mcmc, 1.0);
@@ -291,6 +299,36 @@ void multi_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, gslws_t *
 	// Compute new posterior and accept or reject
 	new_log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
 	new_log_lh = 0;
+	for(i=0; i<6; i++) new_log_lh += get_model_loglh(trees[i], mcmc->Q_dash, &wses[i]);
+	new_log_poster = new_log_prior + new_log_lh;
+	accept_or_reject(fp, mcmc, new_log_prior, new_log_lh, new_log_poster);
+}
+
+void balanced_multi_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, gslws_t *wses) {
+	uint8_t i;
+	double new_log_prior, new_log_lh, new_log_poster;
+
+	// Draw proposal
+	build_q(mcmc);
+	draw_proposal(mcmc);
+	build_q_dash(mcmc);
+
+	// Be noisey
+	fprintf(fp, "Time to take a closer look...\n");
+	fprintf(fp, "Current Q:\n");
+	fprint_matrix(fp, mcmc->Q);
+	fprintf(fp, "Current posterior: %e\n", mcmc->log_poster);
+	fprintf(fp, "Proposed stabs:\n");
+	fprint_vector(fp, mcmc->stabs_dash);
+	fprintf(fp, "Proposed trans:\n");
+	fprint_matrix(fp, mcmc->trans_dash);
+	fprintf(fp, "Proposed Q:\n");
+	fprint_matrix(fp, mcmc->Q_dash);
+
+	// Compute new posterior and accept or reject
+	new_log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
+	new_log_lh = dummy_tree_log_lh(mcmc, &wses[0]);
+	//printf("Proposed dummy tree log LH: %f\n", new_log_lh);
 	for(i=0; i<6; i++) new_log_lh += get_model_loglh(trees[i], mcmc->Q_dash, &wses[i]);
 	new_log_poster = new_log_prior + new_log_lh;
 	accept_or_reject(fp, mcmc, new_log_prior, new_log_lh, new_log_poster);

@@ -9,6 +9,7 @@ struct mcmc {
 	double log_prior;
 	double log_lh;
 	double log_poster;
+	double dummy_tree_age;
 	gsl_vector *stabs;
 	gsl_vector *stabs_dash;
 	gsl_vector *stabs_max;
@@ -24,6 +25,7 @@ typedef struct mcmc mcmc_t;
 void initialise_mcmc(mcmc_t *mcmc);
 void compute_single_tree_probabilities(mcmc_t *mcmc, node_t *tree, gslws_t *ws);
 void compute_multi_tree_probabilities(mcmc_t *mcmc, node_t **trees, gslws_t *wes);
+void compute_balanced_multi_tree_probabilities(mcmc_t *mcmc, node_t **trees, gslws_t *wes);
 void random_restart(mcmc_t *mcmc);
 void initialise_stabs(mcmc_t *mcmc, double x);
 void initialise_trans(mcmc_t *mcmc);
@@ -36,5 +38,6 @@ void draw_proposal(mcmc_t *mcmc);
 void handle_acceptance_probability(double *a);
 void single_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t *tree, gslws_t *ws);
 void multi_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, gslws_t *wses);
+void balanced_multi_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, gslws_t *wses);
 
 #endif /* MCMC_H */
