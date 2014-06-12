@@ -10,7 +10,7 @@
 #include<gsl/gsl_vector.h>
 #include<gsl/gsl_vector_complex.h>
 
-#define MIN_PROTOAGE 35000
+#define MIN_PROTOAGE 55000
 #define MAX_PROTOAGE 100000
 #define STEPS 100.0
 
