@@ -37,16 +37,6 @@ void update_ubertree(ubertree_t *ut, node_t **trees, gsl_matrix *Q, gslws_t *ws)
 	ut->sample_count++;
 }
 	
-float load_tree_age(char *filename) {
-	FILE *fp;
-	float age;
-
-	fp = fopen(filename, "r");
-	fscanf(fp, "%f\n", &age);
-	fclose(fp);
-	return age;
-}
-
 void compute_protodist(double protoage, ubertree_t *ut, node_t **trees, gsl_matrix *Q, gslws_t *ws) {
 	double branch_lengths[6];
 	int i, tree, proto_order, sub_order; 
