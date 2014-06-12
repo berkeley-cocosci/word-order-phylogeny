@@ -18,7 +18,7 @@
 #include "matrix.h"
 #include "mcmc.h"
 #include "modellike.h"
-
+#include "params.h"
 
 void initialise_mcmc(mcmc_t *mcmc) {
 	unsigned long int seed;
@@ -56,7 +56,7 @@ void compute_multi_tree_probabilities(mcmc_t *mcmc, node_t **trees, gslws_t *wse
 	uint8_t i;
 	mcmc->log_prior = get_log_prior(mcmc->stabs, mcmc->trans);
 	mcmc->log_lh = 0.0;
-	for(i=0; i<6; i++) mcmc->log_lh += get_model_loglh(trees[i], mcmc->Q, &wses[i]);
+	for(i=0; i<NUM_TREES; i++) mcmc->log_lh += get_model_loglh(trees[i], mcmc->Q, &wses[i]);
 	printf("Got final log: %f\n", mcmc->log_lh);
 	mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
 }
@@ -299,7 +299,7 @@ void multi_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, gslws_t *
 	// Compute new posterior and accept or reject
 	new_log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
 	new_log_lh = 0;
-	for(i=0; i<6; i++) new_log_lh += get_model_loglh(trees[i], mcmc->Q_dash, &wses[i]);
+	for(i=0; i<NUM_TREES; i++) new_log_lh += get_model_loglh(trees[i], mcmc->Q_dash, &wses[i]);
 	new_log_poster = new_log_prior + new_log_lh;
 	accept_or_reject(fp, mcmc, new_log_prior, new_log_lh, new_log_poster);
 }

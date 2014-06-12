@@ -461,7 +461,7 @@ void load_tree(node_t **tree, char *dir, int method, int family, int treeindex, 
 	float age;
 	char treefile[1024];
 	char leaffile[1024];
-	char families[][16] = {"afro", "austro", "indo", "niger", "nilo", "sino"};
+	char families[][16] = {"afro", "aust", "austro", "indo", "niger", "nilo", "sino", "tng", "amer"};
 	char types[][16] = {"geographic", "genetic", "feature", "combination" };
 	gsl_rng *rng = gsl_rng_alloc(gsl_rng_taus);
 	/* Seed PRNG */

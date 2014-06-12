@@ -9,6 +9,7 @@
 #include<gsl/gsl_vector_complex.h>
 #include<gsl/gsl_statistics_double.h>
 
+#include "params.h"
 #include "gslworkspace.h"
 #include "tree.h"
 #include "matrix.h"
@@ -62,7 +63,7 @@ void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **subtrees, node_
 		}
 
 		build_q(mcmc);
-		for(j=0; j<6; j++) {
+		for(j=0; j<NUM_TREES; j++) {
 			upwards_belprop(logfp, wholetrees[j], mcmc->Q, &wses[j]);
 			process_sample(&sms[j], mcmc, &wses[j], wholetrees[j]);
 		}
@@ -88,7 +89,7 @@ void do_balanced_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **subtre
 		}
 
 		build_q(mcmc);
-		for(j=0; j<6; j++) {
+		for(j=0; j<NUM_TREES; j++) {
 			upwards_belprop(logfp, wholetrees[j], mcmc->Q, &wses[j]);
 			process_sample(&sms[j], mcmc, &wses[j], wholetrees[j]);
 		}
@@ -130,11 +131,11 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	int treeindex, i;
 	char methods[][16] = {"geographic", "genetic", "feature", "combination" };
 	char filename[1024];
-	node_t **trees = calloc(6, sizeof(node_t*));
-	node_t **subtrees = calloc(6, sizeof(node_t*));
+	node_t **trees = calloc(NUM_TREES, sizeof(node_t*));
+	node_t **subtrees = calloc(NUM_TREES, sizeof(node_t*));
 	mcmc_t mcmc;
-	gslws_t *wses = calloc(6, sizeof(gslws_t));
-	sampman_t *sms = calloc(6, sizeof(sampman_t));
+	gslws_t *wses = calloc(NUM_TREES, sizeof(gslws_t));
+	sampman_t *sms = calloc(NUM_TREES, sizeof(sampman_t));
 	ubertree_t ut;
 
 	// Open log file
@@ -147,7 +148,7 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	initialise_mcmc(&mcmc);
 	initialise_ubertree(&ut);
 
-	for(i=0; i<6; i++) {
+	for(i=0; i<NUM_TREES; i++) {
 		alloc_gslws(&wses[i]);
 		initialise_sampman(&sms[i], outdir);
 		sms[i].stability_sampling_rate = (treecount*samples) / 500;
@@ -156,19 +157,19 @@ void whole_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	// Loop over trees...
 	for(treeindex=0; treeindex<treecount; treeindex++) {
 		/* Build tree(s) */
-		for(i=0; i<6; i++) load_tree(&trees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
-		for(i=0; i<6; i++) load_tree(&subtrees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
+		for(i=0; i<NUM_TREES; i++) load_tree(&trees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
+		for(i=0; i<NUM_TREES; i++) load_tree(&subtrees[i], "../TreeBuilder/generated_trees/whole/", method, i, treeindex, shuffle);
 		/* Subsample languages to match global statistics */
 		//subsample(&subtrees, mcmc.r);
 		/* Draw samples for this tree (set) */
 		compute_multi_tree_probabilities(&mcmc, subtrees, wses);
 		do_multi_tree_inference(logfp, &mcmc, subtrees, trees, wses, sms, &ut, burnin, samples, lag);
 		/* Free up tree memory */
-		for(i=0; i<6; i++) free(trees[i]);
+		for(i=0; i<NUM_TREES; i++) free(trees[i]);
 	}
 
 	// Finish up
-	for(i=0; i<6; i++) compute_means(&sms[i]);
+	for(i=0; i<NUM_TREES; i++) compute_means(&sms[i]);
 	sprintf(filename, "%s/%s/", outdir, methods[method]);
 	save_common_q(filename, sms);
 	save_ubertree(&ut, filename);
@@ -231,7 +232,7 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, in
 	uint8_t family;
 	int treeindex;
 	char filename[1024];
-	char families[][16] = {"afro", "austro", "indo", "niger", "nilo", "sino"};
+	char families[][16] = {"afro", "aust", "austro", "indo", "niger", "nilo", "sino", "tng", "amer"};
 	char types[][16] = {"geographic", "genetic", "feature", "combination" };
 	node_t *tree;
 	mcmc_t mcmc;
@@ -252,7 +253,7 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, in
 	sm.stability_sampling_rate = (treecount*samples) / 500;
 
 	// Loop over families
-	for(family=0; family<6; family++) {
+	for(family=0; family<NUM_TREES; family++) {
 		reset_sampman(&sm);
 		// Loop over trees
 		for(treeindex=0; treeindex<treecount; treeindex++) {
@@ -280,19 +281,19 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	int treeindex, i, j, k;
 	char filename[1024];
 	char methods[][16] = {"geographic", "genetic", "feature", "combination" };
-	node_t **trees1 = calloc(6, sizeof(node_t*));
-	node_t **subtrees1 = calloc(6, sizeof(node_t*));
-	node_t **trees2 = calloc(6, sizeof(node_t*));
-	node_t **subtrees2 = calloc(6, sizeof(node_t*));
+	node_t **trees1 = calloc(NUM_TREES, sizeof(node_t*));
+	node_t **subtrees1 = calloc(NUM_TREES, sizeof(node_t*));
+	node_t **trees2 = calloc(NUM_TREES, sizeof(node_t*));
+	node_t **subtrees2 = calloc(NUM_TREES, sizeof(node_t*));
 	mcmc_t mcmc1, mcmc2;
-	gslws_t *wses1 = calloc(6, sizeof(gslws_t));
-	gslws_t *wses2 = calloc(6, sizeof(gslws_t));
-	sampman_t *sms1 = calloc(6, sizeof(sampman_t));
-	sampman_t *sms2 = calloc(6, sizeof(sampman_t));
+	gslws_t *wses1 = calloc(NUM_TREES, sizeof(gslws_t));
+	gslws_t *wses2 = calloc(NUM_TREES, sizeof(gslws_t));
+	sampman_t *sms1 = calloc(NUM_TREES, sizeof(sampman_t));
+	sampman_t *sms2 = calloc(NUM_TREES, sizeof(sampman_t));
 	gsl_matrix *q1 = gsl_matrix_alloc(6, 6);
 	gsl_matrix *q2 = gsl_matrix_alloc(6, 6);
-	double qcorrel1[36], qcorrel2[36];
-	double anccorrel1[36], anccorrel2[36];
+	double qcorrel1[6*NUM_TREES], qcorrel2[6*NUM_TREES];
+	double anccorrel1[6*NUM_TREES], anccorrel2[6*NUM_TREES];
 	double qcorrelation = 0;
 	double anccorrelation = 0;
 
@@ -305,7 +306,7 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 
 	initialise_mcmc(&mcmc1);
 	initialise_mcmc(&mcmc2);
-	for(i=0; i<6; i++) {
+	for(i=0; i<NUM_TREES; i++) {
 		alloc_gslws(&wses1[i]);
 		alloc_gslws(&wses2[i]);
 		initialise_sampman(&sms1[i], outdir);
@@ -319,7 +320,7 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	for(treeindex=0; treeindex<treecount; treeindex++) {
 
 		/* Build tree(s) */
-		for(i=0; i<6; i++) {
+		for(i=0; i<NUM_TREES; i++) {
 			load_tree(&trees1[i], "../TreeBuilder/generated_trees/split/1/", method, i, treeindex, shuffle);
 			load_tree(&subtrees1[i], "../TreeBuilder/generated_trees/split/1/", method, i, treeindex, shuffle);
 			load_tree(&trees2[i], "../TreeBuilder/generated_trees/split/2/", method, i, treeindex, shuffle);
@@ -340,8 +341,8 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 
 		gsl_matrix_set_zero(q1);
 		gsl_matrix_set_zero(q2);
-		memset(anccorrel1, 0, 6*sizeof(double));
-		memset(anccorrel2, 0, 6*sizeof(double));
+		memset(anccorrel1, 0, NUM_TREES*sizeof(double));
+		memset(anccorrel2, 0, NUM_TREES*sizeof(double));
 		/* Take samples */
 		for(i=0; i<samples; i++) {
 			if(gsl_rng_uniform_int(mcmc1.r, 10000) >= 9999) {
@@ -364,7 +365,7 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 			build_q(&mcmc1);
 			build_q(&mcmc2);
 
-			for(j=0; j<6; j++) {
+			for(j=0; j<NUM_TREES; j++) {
 				upwards_belprop(logfp, trees1[j], mcmc1.Q, &wses1[j]);
 				upwards_belprop(logfp, trees2[j], mcmc2.Q, &wses2[j]);
 				process_sample(&sms1[j], &mcmc1, &wses1[j], trees1[j]);
@@ -375,7 +376,7 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 			/* Combine Q samples for this tree pair */
 			gsl_matrix_add(q1, mcmc1.Q);
 			gsl_matrix_add(q2, mcmc2.Q);
-			for(j=0; j<6; j++) {
+			for(j=0; j<NUM_TREES; j++) {
 				for(k=0; k<6; k++) {
 					anccorrel1[j*6+k] += trees1[j]->dist[k];
 					anccorrel2[j*6+k] += trees2[j]->dist[k];
@@ -400,7 +401,7 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 
 		/***************************************************/
 		/* Free up tree memory */
-		for(i=0; i<6; i++) {
+		for(i=0; i<NUM_TREES; i++) {
 			free(trees1[i]);
 			free(subtrees1[i]);
 			free(trees2[i]);
@@ -411,7 +412,7 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 	anccorrelation /= treecount;
 
 	// Finish up
-	for(i=0; i<6; i++) {
+	for(i=0; i<NUM_TREES; i++) {
 		compute_means(&sms1[i]);
 		compute_means(&sms2[i]);
 	}

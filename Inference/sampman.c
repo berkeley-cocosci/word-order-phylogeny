@@ -2,6 +2,7 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 
+#include "params.h"
 #include "matrix.h"
 #include "mcmc.h"
 #include "sampman.h"
@@ -296,16 +297,16 @@ void save_common_q(char *directory, sampman_t *sms) {
 	fprintf(fp, "----------\n");
 
 	fprintf(fp, "Posterior mean uniform ancestrals:\n");
-	for(i=0; i<6; i++) fprint_vector(fp, sms[i].ancestral_sum);
+	for(i=0; i<NUM_TREES; i++) fprint_vector(fp, sms[i].ancestral_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean fuzzy ancestrals:\n");
-	for(i=0; i<6; i++) fprint_vector(fp, sms[i].sliding_prior_ancestral_sum[0]);
+	for(i=0; i<NUM_TREES; i++) fprint_vector(fp, sms[i].sliding_prior_ancestral_sum[0]);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean stationary ancestrals:\n");
-	for(i=0; i<6; i++) fprint_vector(fp, sms[i].stationary_prior_ancestral_sum);
+	for(i=0; i<NUM_TREES; i++) fprint_vector(fp, sms[i].stationary_prior_ancestral_sum);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Posterior mean ancestry evidence:\n");
-	for(i=0; i<6; i++) fprint_vector(fp, sms[i].evidence_sum);
+	for(i=0; i<NUM_TREES; i++) fprint_vector(fp, sms[i].evidence_sum);
 	fprintf(fp, "----------\n");
 
 	fprintf(fp, "Hypothesis probabilities:\n");
@@ -353,7 +354,7 @@ void save_common_q(char *directory, sampman_t *sms) {
 	strcat(filename, "/sliding_prior");
 	fp = fopen(filename, "w");
 	for(i=0; i<100; i++) {
-		for(j=0; j<6; j++) {
+		for(j=0; j<NUM_TREES; j++) {
 			fprint_vector(fp, sms[j].sliding_prior_ancestral_sum[i]);
 		}
 		fprintf(fp, "----------\n");
