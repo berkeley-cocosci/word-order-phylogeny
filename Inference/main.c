@@ -232,7 +232,7 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, in
 	uint8_t family;
 	int treeindex;
 	char filename[1024];
-	char families[][16] = {"afro", "aust", "austro", "indo", "niger", "nilo", "sino", "tng", "amer"};
+	char families[][16] = {"afro", "austro", "indo", "niger", "nilo", "sino", "aust", "tng", "amer"};
 	char types[][16] = {"geographic", "genetic", "feature", "combination" };
 	node_t *tree;
 	mcmc_t mcmc;
