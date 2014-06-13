@@ -1,10 +1,10 @@
 all: inference generate 
 
 inference:
-	gcc -Wall -g -O3 -lgsl -lgslcblas -lm main.c beliefprop.c matrix.c mcmc.c modellike.c tree.c gslworkspace.c sampman.c ubertree.c -o inference.exe
+	gcc -g -O3  main.c beliefprop.c matrix.c mcmc.c modellike.c tree.c gslworkspace.c sampman.c ubertree.c -o inference.exe -lgsl -lgslcblas -lm
 
 generate:
-	gcc -g -lgsl -lgslcblas -lm generate.c beliefprop.c matrix.c mcmc.c modellike.c tree.c gslworkspace.c -o generate.exe
+	gcc -g  generate.c beliefprop.c matrix.c mcmc.c modellike.c tree.c gslworkspace.c -o generate.exe -lgsl -lgslcblas -lm
 
 distill:
 	gcc -g -lgsl -lgslcblas -lm distiller.c beliefprop.c matrix.c mcmc.c modellike.c -o distill.exe
