@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import codecs
 import time
 import urllib
 
@@ -22,7 +23,7 @@ def read_iso_codes_from_file(filename):
     return codes
 
 def main():
-    fp = open("classifications.txt", "w")
+    fp = codecs.open("classifications.txt", "w", "UTF8")
     codes = read_iso_codes_from_file("iso_codes.txt")
     errors = []
     for index, iso in enumerate(codes):
@@ -31,8 +32,9 @@ def main():
             fp.write("%s: %s\n" % (iso, classi))
             print "Got classification for %s: %s (%d/%d)" % (iso, classi, index+1, len(codes) )
             time.sleep(10)
-        except:
+        except Exception as e:
             print "[ERROR] Something went wrong with %s" % iso
+            print e
             errors.append(iso)
     fp.close()
     print "Had %d problems in total" % len(errors)

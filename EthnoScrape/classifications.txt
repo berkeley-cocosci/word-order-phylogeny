@@ -1,3 +1,170 @@
+aca: Maipurean, Northern, Upper Amazon, Western Nawiki, Piapoco
+acv: Palaihnihan
+ale: Eskimo-Aleut, Aleut
+apn: Jean, Northern
+apu: Maipurean, Southern, Southern Outlier, Piro
+apw: Eyak-Athabaskan, Athabaskan, Apachean, Apache
+apy: Cariban, Central
+arh: Chibchan, Chibchan B, Eastern Chibchan, Colombian, Northern Colombian, Arhuacan, Southern and Eastern Arhuacan
+arr: Tupian, Ramarama
+arw: Maipurean, Northern, Maritime, Ta-Maipurean
+asu: Tupian, Tupí-Guaraní, Tenetehara, Akwawa
+atw: Palaihnihan
+bae: Maipurean, Northern, Upper Amazon, Central Upper Amazon, Baré
+bla: Algic, Algonquian
+blc: Salish
+brg: Maipurean, Southern, Southern Outlier, Mojo
+bsn: Tucanoan, Eastern Tucanoan, Bará-Tuyuka
+bzd: Chibchan, Chibchan A, Viceitic
+cab: Maipurean, Northern, Maritime, Ta-Maipurean, Iñeri
+cac: Mayan, Yucatecan-Core Mayan, Q’anjob’alan-Chujean, Chujean
+cak: Mayan, Yucatecan-Core Mayan, K’ichean-Mamean, K’ichean, Poqom-K’ichean, Core K’ichean, Kaqchikel-Tz’utujil
+car: Cariban
+cco: Otomanguean, Western Otomanguean, Oto-Pame-Chinantecan, Chinantecan
+chf: Mayan, Yucatecan-Core Mayan, Core Mayan, Cholan-Tzeltalan, Cholan, Chol-Chontal
+chh: Chinookan
+chl: Uto-Aztecan, Northern Uto-Aztecan, Takic, Cahuilla
+chp: Eyak-Athabaskan, Athabaskan, Northern Athabaskan
+chq: Otomanguean, Western Otomanguean, Oto-Pame-Chinantecan, Chinantecan
+cle: Otomanguean, Western Otomanguean, Oto-Pame-Chinantecan, Chinantecan
+cni: Maipurean, Southern, Campa
+cod: Tupian, Tupí-Guaraní, Tupí, Cocama
+coe: Tucanoan, Western Tucanoan
+com: Uto-Aztecan, Northern Uto-Aztecan, Numic, Central
+cpa: Otomanguean, Western Otomanguean, Oto-Pame-Chinantecan, Chinantecan
+crj: Algic, Algonquian, Cree-Montagnais
+crk: Algic, Algonquian, Cree-Montagnais
+crn: Uto-Aztecan, Southern Uto-Aztecan, Corachol-Aztecan, Cora-Huichol, Cora
+css: Miwok-Costanoan, Costanoan
+ctp: Otomanguean, Eastern Otomanguean, Popolocan-Zapotecan, Zapotecan, Chatino
+cub: Tucanoan, Central Tucanoan
+cup: Uto-Aztecan, Northern Uto-Aztecan, Takic, Cahuilla
+des: Tucanoan, Eastern Tucanoan, Desano-Siriano
+dih: Cochimí-Yuman, Yuman, Delta-California
+eme: Tupian, Tupí-Guaraní, Wayampí, Wayampí
+ess: Eskimo-Aleut, Eskimo, Yupik
+esu: Eskimo-Aleut, Eskimo, Yupik, Alaskan Yupik
+fla: Salish, Interior, Southern, Kalispel
+gae: Maipurean, Northern, Upper Amazon, Western Nawiki, Warekena
+git: Tsimshian, Nass-Gitksan
+gta: Language isolate
+gub: Tupian, Tupí-Guaraní, Tenetehara, Tenetehara
+guc: Maipurean, Northern, Maritime, Ta-Maipurean
+gug: Tupian, Tupí-Guaraní, Guaraní, Guaraní
+gym: Chibchan, Chibchan A, Guaymiíc
+hch: Uto-Aztecan, Southern Uto-Aztecan, Corachol-Aztecan, Cora-Huichol
+hix: Cariban, Waiwai
+hop: Uto-Aztecan, Northern Uto-Aztecan
+hup: Eyak-Athabaskan, Athabaskan, Pacific Coast Athabaskan, California Athabaskan
+hur: Salish, Central Salish
+hus: Mayan, Huastecan, Huastec
+ixl: Mayan, Yucatecan-Core Mayan, K’ichean-Mamean, Mamean, Awakateko-Ixil
+jac: Mayan, Yucatecan-Core Mayan, Q’anjob’alan-Chujean, Q’anjob’alan, Q’anjob’al-Akateko-Jakalteko
+kal: Eskimo-Aleut, Eskimo, Inuit-Inupiaq
+kay: Tupian
+kgp: Jean, Southern, Kaingang
+kla: Language isolate
+klb: Cochimí-Yuman, Yuman
+kpj: Karajá
+kqq: Botocudoan
+kre: Jean, Northern
+kui: Cariban, South Amazonian, Bakairí, Amonap
+kvn: Chibchan, Chibchan B, Eastern Chibchan, Cuna
+kyz: Tupian, Tupí-Guaraní, Kayabí
+lac: Mayan, Yucatecan-Core Mayan, Yucatecan, Yucatec-Lacandon
+lil: Salish, Interior
+lui: Uto-Aztecan, Northern Uto-Aztecan, Takic
+mam: Mayan, Yucatecan-Core Mayan, K’ichean-Mamean, Mamean, Teco-Mam
+mau: Otomanguean, Eastern Otomanguean, Popolocan-Zapotecan, Popolocan, Mazatec
+mbc: Cariban, North Amazonian, Pemón, Pemón proper
+mbl: Maxakalian
+mbp: Chibchan, Chibchan B, Eastern Chibchan, Colombian, Northern Colombian, Arhuacan, Southern and Eastern Arhuacan, Guamaca-Atanque
+mch: Cariban, Central, Makiritare
+mez: Algic, Algonquian
+mie: Otomanguean, Eastern Otomanguean, Amuzgo-Mixtecan, Mixtecan, Mixtec
+mig: Otomanguean, Eastern Otomanguean, Amuzgo-Mixtecan, Mixtecan, Mixtec
+mil: Otomanguean, Eastern Otomanguean, Amuzgo-Mixtecan, Mixtecan, Mixtec
+mio: Otomanguean, Eastern Otomanguean, Amuzgo-Mixtecan, Mixtecan, Mixtec
+mnr: Uto-Aztecan, Northern Uto-Aztecan, Numic, Western
+mpm: Otomanguean, Eastern Otomanguean, Amuzgo-Mixtecan, Mixtecan, Mixtec
+mrc: Cochimí-Yuman, Yuman, River, Mojave
+myu: Tupian, Mundurukú
+nav: Eyak-Athabaskan, Athabaskan, Apachean
+ncg: Tsimshian, Nass-Gitksan
+ncj: Uto-Aztecan, Southern Uto-Aztecan, Corachol-Aztecan, Core Nahua, Nahuatl
+ncl: Uto-Aztecan, Southern Uto-Aztecan, Corachol-Aztecan, Core Nahua, Nahuatl
+nez: Sahaptian
+nhe: Uto-Aztecan, Southern Uto-Aztecan, Corachol-Aztecan, Core Nahua, Nahuatl
+nhg: Uto-Aztecan, Southern Uto-Aztecan, Corachol-Aztecan, Core Nahua, Nahuatl
+nmu: Maiduan, Maidu
+ntp: Uto-Aztecan, Southern Uto-Aztecan, Pimic, Tepehuan
+ocu: Otomanguean, Western Otomanguean, Oto-Pame-Chinantecan, Oto-Pamean, Matlatzinca-Ocuilteco
+ojg: Algic, Algonquian, Ojibwa-Potawatomi
+ood: Uto-Aztecan, Southern Uto-Aztecan, Pimic
+opt: Uto-Aztecan, Southern Uto-Aztecan, Taracahitic, Opatan
+ote: Otomanguean, Western Otomanguean, Oto-Pame-Chinantecan, Oto-Pamean, Otomi
+oym: Tupian, Tupí-Guaraní, Wayampí, Wayampí
+pao: Uto-Aztecan, Northern Uto-Aztecan, Numic, Western
+par: Uto-Aztecan, Northern Uto-Aztecan, Numic, Central
+pbs: Otomanguean, Western Otomanguean, Oto-Pame-Chinantecan, Oto-Pamean, Pame
+peb: Pomoan
+pia: Uto-Aztecan, Southern Uto-Aztecan, Pimic
+pib: Maipurean, Southern, Southern Outlier, Piro, Piro
+plu: Maipurean, Northern, Eastern, Palikur
+pom: Pomoan
+ppl: Uto-Aztecan, Southern Uto-Aztecan, Corachol-Aztecan, Core Nahua
+pqm: Algic, Algonquian, Eastern Algonquian
+pwi: Wintuan
+qum: Mayan, Yucatecan-Core Mayan, K’ichean-Mamean, K’ichean, Poqom-K’ichean, Core K’ichean
+ram: Jean, Northern, Timbira
+rgr: Maipurean, Northern, Upper Amazon
+rkb: Language isolate
+rma: Chibchan, Chibchan B, Votic
+scs: Eyak-Athabaskan, Athabaskan, Northern Athabaskan, Slavey-Hare
+sei: Language isolate
+shh: Uto-Aztecan, Northern Uto-Aztecan, Numic, Central
+shs: Salish, Interior
+sht: Language isolate
+skd: Miwok-Costanoan, Miwokan, Eastern Miwokan, Sierra Miwok
+skf: Tupian, Tuparí
+squ: Salish, Central Salish
+srq: Tupian, Tupí-Guaraní, Guarayú, Sirionó
+srs: Eyak-Athabaskan, Athabaskan, Northern Athabaskan
+tac: Uto-Aztecan, Southern Uto-Aztecan, Taracahitic, Tarahumaran, Tarahumara
+tae: Maipurean, Northern, Upper Amazon, Eastern Nawiki
+tar: Uto-Aztecan, Southern Uto-Aztecan, Taracahitic, Tarahumaran, Tarahumara
+tcf: Otomanguean, Western Otomanguean, Tlapantec-Manguean, Tlapantec-Subtiaba, Tlapantec
+tfr: Chibchan, Chibchan A
+thp: Salish, Interior, Northern
+tli: Eyak-Athabaskan, Tlingit
+tnc: Tucanoan, Western Tucanoan
+tpj: Tupian, Tupí-Guaraní, Guaraní, Guaraní
+trc: Otomanguean, Eastern Otomanguean, Amuzgo-Mixtecan, Mixtecan, Trique
+tri: Cariban, Tiriyó, Tiriyó
+tsi: Tsimshian
+tue: Tucanoan, Eastern Tucanoan, Bará-Tuyuka
+txu: Jean, Northern
+tzj: Mayan, Yucatecan-Core Mayan, K’ichean-Mamean, K’ichean, Poqom-K’ichean, Core K’ichean, Kaqchikel-Tz’utujil
+tzo: Mayan, Yucatecan-Core Mayan, Core Mayan, Cholan-Tzeltalan, Tzeltalan, Tzotzil
+urb: Tupian, Tupí-Guaraní, Wayampí, Amanayé
+ute: Uto-Aztecan, Northern Uto-Aztecan, Numic, Southern
+var: Uto-Aztecan, Southern Uto-Aztecan, Taracahitic, Tarahumaran
+waa: Sahaptian, Sahaptin
+wam: Algic, Algonquian, Eastern Algonquian
+waw: Cariban, Waiwai
+wiy: Algic, Ritwan
+wnw: Wintuan
+xaw: Uto-Aztecan, Northern Uto-Aztecan, Numic, Southern
+xer: Jean, Central
+xra: Jean, Northern, Timbira
+yaq: Uto-Aztecan, Southern Uto-Aztecan, Taracahitic, Cahitan
+ycn: Maipurean, Northern, Upper Amazon, Western Nawiki
+yok: Yokutsan
+yuf: Cochimí-Yuman, Yuman, Pai
+yur: Algic, Ritwan
+zai: Otomanguean, Eastern Otomanguean, Popolocan-Zapotecan, Zapotecan, Zapotec
+zaw: Otomanguean, Eastern Otomanguean, Popolocan-Zapotecan, Zapotecan, Zapotec
+zpq: Otomanguean, Eastern Otomanguean, Popolocan-Zapotecan, Zapotecan, Zapotec
 arv: Afro-Asiatic, Cushitic, East, Western Omo-Tana
 ach: Nilo-Saharan, Eastern Sudanic, Nilotic, Western, Luo, Southern, Luo-Acholi, Alur-Acholi, Lango-Acholi
 adj: Niger-Congo, Atlantic-Congo, Volta-Congo, Kwa, Nyo, Agneby
@@ -643,3 +810,262 @@ mym: Nilo-Saharan, Eastern Sudanic, Eastern, Surmic, South, Southeast, Pastoral,
 niq: Nilo-Saharan, Eastern Sudanic, Nilotic, Southern, Kalenjin, Nandi-Markweta, Nandi
 dgl: Nilo-Saharan, Eastern Sudanic, Eastern, Nubian, Central, Dongolawi
 xnz: Nilo-Saharan, Eastern Sudanic, Eastern, Nubian, Central
+agd: Trans-New Guinea, Kainantu-Goroka, Kainantu, Gadsup-Auyana-Awa
+ahh: Trans-New Guinea, Ok-Awyu, Awyu-Dumut, Awyu
+aey: Trans-New Guinea, Madang, Croisilles, Gum
+imi: Trans-New Guinea, Madang, South Adelbert Range, Josephstaal, Pomoikan
+agm: Trans-New Guinea, Angan, Angaatiha
+apz: Trans-New Guinea, Angan, Nuclear Angan
+tml: Trans-New Guinea, Asmat-Kamoro, Asmat
+auy: Trans-New Guinea, Kainantu-Goroka, Kainantu, Gadsup-Auyana-Awa
+awb: Trans-New Guinea, Kainantu-Goroka, Kainantu, Gadsup-Auyana-Awa
+nvm: Trans-New Guinea, Southeast Papuan, Koiarian, Baraic
+bbb: Trans-New Guinea, Southeast Papuan, Koiarian, Baraic
+bbd: Trans-New Guinea, Madang, Croisilles, Gum
+bef: Trans-New Guinea, Kainantu-Goroka, Gorokan, Gahuku-Benabena
+bhg: Trans-New Guinea, Greater Binanderean, Binanderean, Nuclear Binanderean, Binandere
+bmu: Trans-New Guinea, Finisterre-Huon, Huon, Western
+bjr: Trans-New Guinea, Kainantu-Goroka, Kainantu, Tairora
+bpu: Trans-New Guinea, Madang, Rai Coast, Mindjim
+byr: Trans-New Guinea, Angan, Nuclear Angan
+cjv: Trans-New Guinea, Chimbu-Wahgi, Chimbu
+dni: Trans-New Guinea, West, Dani, Dani Proper
+duc: Trans-New Guinea, Duna-Bogaya
+eip: Trans-New Guinea, Mek, Eastern
+ekg: Trans-New Guinea, West, Wissel Lakes
+enq: Trans-New Guinea, Engan, Enga
+faa: Trans-New Guinea, West Kutubu
+foi: Trans-New Guinea, East Kutubu
+for: Trans-New Guinea, Kainantu-Goroka, Gorokan, Fore
+gah: Trans-New Guinea, Kainantu-Goroka, Gorokan, Gahuku-Benabena
+gaj: Trans-New Guinea, Kainantu-Goroka, Kainantu, Gadsup-Auyana-Awa
+gvf: Trans-New Guinea, Chimbu-Wahgi, Chimbu
+gyb: Trans-New Guinea, Madang, Croisilles, Hanseman
+ghs: Trans-New Guinea, Greater Binanderean, Guhu-Samane
+hmt: Trans-New Guinea, Angan, Nuclear Angan
+ygr: Trans-New Guinea, Kainantu-Goroka, Gorokan, Kamano-Yagaria
+kbq: Trans-New Guinea, Kainantu-Goroka, Gorokan, Kamano-Yagaria
+kmg: Trans-New Guinea, Finisterre-Huon, Huon, Eastern
+kjs: Trans-New Guinea, Engan, Angal-Kewa
+kew: Trans-New Guinea, Engan, Angal-Kewa
+ubu: Trans-New Guinea, Chimbu-Wahgi, Hagen, Kaugel
+kmh: Trans-New Guinea, Madang, Kalam-Kobon
+wng: Trans-New Guinea, Ok-Awyu, Awyu-Dumut, Dumut
+tyn: Trans-New Guinea, Ok-Awyu, Awyu-Dumut, Dumut
+kue: Trans-New Guinea, Chimbu-Wahgi, Chimbu
+kpx: Trans-New Guinea, Southeast Papuan, Koiarian, Koiaric
+kup: Trans-New Guinea, Southeast Papuan, Goilalan, Kunimaipa
+kgq: Trans-New Guinea, Asmat-Kamoro, Kamoro
+kpw: Trans-New Guinea, Madang, Kalam-Kobon
+kbk: Trans-New Guinea, Southeast Papuan, Koiarian, Koiaric
+kpr: Trans-New Guinea, Greater Binanderean, Binanderean, Nuclear Binanderean, South Binanderean, Coastal Binanderean, Gaena-Korafe
+khe: Trans-New Guinea, Ok-Awyu, Awyu-Dumut, Korowai
+kqi: Trans-New Guinea, Southeast Papuan, Koiarian, Koiaric
+yon: Trans-New Guinea, Ok-Awyu, Ok, Lowland
+xte: Trans-New Guinea, Mek, Western
+kyc: Trans-New Guinea, Engan, Enga
+mbw: Trans-New Guinea, Chimbu-Wahgi, Jimi
+mcr: Trans-New Guinea, Angan, Nuclear Angan
+mgu: Trans-New Guinea, Southeast Papuan, Mailuan
+mnz: Trans-New Guinea, West, Wissel Lakes
+mpt: Trans-New Guinea, Ok-Awyu, Ok, Mountain
+mqf: Somahai
+zrs: Mairasi
+mlp: Trans-New Guinea, Madang, Croisilles, Mugil
+naf: Trans-New Guinea, Finisterre-Huon, Huon, Western
+anh: Trans-New Guinea, Madang, South Adelbert Range, Wanang, Atan
+nnk: Trans-New Guinea, Finisterre-Huon, Finisterre, Yupna
+aom: Trans-New Guinea, Southeast Papuan, Koiarian, Baraic
+ons: Trans-New Guinea, Finisterre-Huon, Huon, Western
+okv: Trans-New Guinea, Greater Binanderean, Binanderean, Nuclear Binanderean, South Binanderean, Orokaivan
+psa: Trans-New Guinea, Ok-Awyu, Awyu-Dumut, Awyu
+rwo: Trans-New Guinea, Finisterre-Huon, Finisterre, Gusap-Mot
+snp: Trans-New Guinea, Kainantu-Goroka, Gorokan, Siane
+spl: Trans-New Guinea, Finisterre-Huon, Huon, Western
+ssd: Trans-New Guinea, Madang, Rai Coast, Kabenau
+sue: Trans-New Guinea, Greater Binanderean, Binanderean, North Binanderean
+sll: Trans-New Guinea, Chimbu-Wahgi, Chimbu
+tya: Trans-New Guinea, Madang, Rai Coast, Biyom-Tauya
+sst: Trans-New Guinea, Chimbu-Wahgi, Chimbu
+tif: Trans-New Guinea, Ok-Awyu, Ok, Mountain
+tlf: Trans-New Guinea, Ok-Awyu, Ok, Mountain
+tbg: Trans-New Guinea, Kainantu-Goroka, Kainantu, Tairora
+mtg: Trans-New Guinea, Mek, Eastern
+wnu: Trans-New Guinea, Madang, Croisilles, Pihom, Numugenan
+usa: Trans-New Guinea, Kainantu-Goroka, Kainantu, Gadsup-Auyana-Awa
+whg: Trans-New Guinea, Chimbu-Wahgi, Wahgi
+wgi: Trans-New Guinea, Chimbu-Wahgi, Wahgi
+wms: Trans-New Guinea, Ok-Awyu, Awyu-Dumut, Dumut
+wer: Trans-New Guinea, Southeast Papuan, Goilalan, Kunimaipa
+wnc: Trans-New Guinea, Finisterre-Huon, Finisterre, Wantoat
+wsk: Trans-New Guinea, Madang, South Adelbert Range, Kowan
+kkl: Trans-New Guinea, Mek, Eastern
+ygr: Trans-New Guinea, Kainantu-Goroka, Gorokan, Kamano-Yagaria
+yli: Trans-New Guinea, West, Dani, Ngalik
+ard: Australian, Pama-Nyungan, Karnic, Palku
+adt: Australian, Pama-Nyungan, South-West, Yura
+lnj: Australian, Pama-Nyungan, Paman, Northern Pama
+alh: Australian, Gunwingguan, Maran, Alawic
+aly: Australian, Pama-Nyungan, Arandic
+aer: Australian, Pama-Nyungan, Arandic
+aoi: Australian, Gunwingguan, Enindhilyagwa
+are: Australian, Pama-Nyungan, Arandic
+aer: Australian, Pama-Nyungan, Arandic
+are: Australian, Pama-Nyungan, Arandic
+wdj: Australian, Daly, Bringen-Wagaydy, Wagaydy
+gup: Australian, Gunwingguan, Gunwinggic
+bdy: Australian, Pama-Nyungan, Bandjalangic
+bia: Australian, Pama-Nyungan, South-West, Wadjari
+bzr: Australian, Pama-Nyungan, Maric
+nad: Australian, Pama-Nyungan, South-West, Nijadali
+bck: Australian, Bunaban
+bdy: Australian, Pama-Nyungan, Bandjalangic
+bjb: Australian, Pama-Nyungan, South-West, Yura
+nbj: Australian, Pama-Nyungan, South-West, Ngumbin
+bcj: Australian, Nyulnyulan
+bvr: Australian, Gunwingguan, Burarran
+bdy: Australian, Pama-Nyungan, Bandjalangic
+bxj: Australian, Pama-Nyungan, South-West, Kanyara
+bdy: Australian, Pama-Nyungan, Bandjalangic
+duj: Australian, Pama-Nyungan, Yuulngu, Dhuwal
+bjy: Australian, Pama-Nyungan, Waka-Kabic, Kingkel
+dhl: Australian, Pama-Nyungan, South-West, Dhalandji
+dhr: Australian, Pama-Nyungan, South-West, Inland Ngayarda
+dhu: Australian, Pama-Nyungan, Yuin
+tbh: Australian, Pama-Nyungan, Yuin
+dif: Australian, Pama-Nyungan, Karnic, Karna
+dyy: Australian, Pama-Nyungan, Yidinic
+jig: Australian, West Barkly
+djr: Australian, Pama-Nyungan, Yuulngu, Dhuwal
+dji: Australian, Pama-Nyungan, Yuulngu, Djinang
+duj: Australian, Pama-Nyungan, Yuulngu, Dhuwal
+ddj: Australian, Pama-Nyungan, South-West, Ngumbin
+dbl: Australian, Pama-Nyungan, Dyirbalic
+amy: Australian, Daly, Bringen-Wagaydy, Wagaydy
+gbu: Australian, Gunwingguan, Gagudjuan
+ggd: Australian, Pama-Nyungan, Paman, Flinders Pama
+gnr: Australian, Pama-Nyungan, Waka-Kabic, Than
+bdy: Australian, Pama-Nyungan, Bandjalangic
+gue: Australian, Pama-Nyungan, South-West, Ngumbin
+dhg: Australian, Pama-Nyungan, Yuulngu, Dhangu
+kld: Australian, Pama-Nyungan, Wiradhuric
+gnn: Australian, Pama-Nyungan, Yuulngu, Dhuwal
+wlg: Australian, Gunwingguan, Gunwinggic
+gww: Australian, Worrorran
+gyy: Australian, Pama-Nyungan, Maric
+gni: Australian, Bunaban
+gge: Australian, Gunwingguan, Burarran
+guf: Australian, Pama-Nyungan, Yuulngu, Dhuwal
+ktd: Australian, Pama-Nyungan, South-West, Wati
+kgs: Australian, Pama-Nyungan, Gumbaynggiric
+kky: Australian, Pama-Nyungan, Guugu-Yimidhirr
+ynd: Australian, Pama-Nyungan, Karnic, Karna
+ibd: Australian, Yiwaidjan, Yiwaidjic
+djd: Australian, Djamindjungan
+gyd: Australian, Tangic
+ktg: Australian, Pama-Nyungan, Galgadungic
+gia: Australian, Djeragan
+kjn: Australian, Pama-Nyungan, Paman, Central Pama
+mwp: Australian, Pama-Nyungan, Kala Lagaw Ya
+xmu: Australian, Daly, Malagmalag, Daly Proper
+uwa: Australian, Pama-Nyungan, Paman, Middle Pama
+gbd: Australian, Pama-Nyungan, South-West, Marngu
+kuy: Australian, Pama-Nyungan, Paman, Northeastern Pama
+gvn: Australian, Pama-Nyungan, Yalandyic
+gbb: Australian, Pama-Nyungan, Arandic
+lrg: Australian, Laragiyan
+lby: Australian, Pama-Nyungan, Paman, Lamalamic
+lmc: Australian, Limilngan-Wulna
+lnj: Australian, Pama-Nyungan, Paman, Northern Pama
+lbz: Australian, Pama-Nyungan, Lardil
+mph: Australian, Yiwaidjan, Yiwaidjic
+zml: Australian, Daly, Malagmalag, Daly Proper
+mep: Australian, Djeragan
+zmr: Australian, Daly, Bringen-Wagaydy, Wagaydy
+mpb: Australian, Daly, Malagmalag, Malagmalag Proper
+mpj: Australian, Pama-Nyungan, South-West, Wati
+zmc: Australian, Pama-Nyungan, Maric
+mwf: Australian, Daly, Murrinh-Patha
+mec: Australian, Gunwingguan, Maran, Mara
+mfr: Australian, Daly, Bringen-Wagaydy, Bringen
+nju: Australian, Pama-Nyungan, South-West, Mirning
+zmt: Australian, Daly, Bringen-Wagaydy, Bringen
+vma: Australian, Pama-Nyungan, South-West, Coastal Ngayarda
+zmu: Australian, Pama-Nyungan, Muruwaric
+mpj: Australian, Pama-Nyungan, South-West, Wati
+mpc: Australian, Gunwingguan, Mangarayic
+djj: Australian, Gunwingguan, Burarran
+nam: Australian, Daly, Murrinh-Patha
+wyb: Australian, Pama-Nyungan, Wiradhuric
+nju: Australian, Pama-Nyungan, South-West, Mirning
+nam: Australian, Daly, Murrinh-Patha
+nig: Australian, Gunwingguan, Rembargic
+nid: Australian, Gunwingguan, Enindhilyagwa
+nay: Australian, Pama-Nyungan, Ngarinyeric-Yithayithic
+nxn: Australian, Pama-Nyungan, Paman, Mayabic
+nbj: Australian, Pama-Nyungan, South-West, Ngumbin
+nys: Australian, Pama-Nyungan, South-West, Nyungar
+ngk: Australian, Gunwingguan, Ngalkbun
+nck: Australian, Gunwingguan, Burarran
+nlr: Australian, Pama-Nyungan, South-West, Inland Ngayarda
+nrl: Australian, Pama-Nyungan, South-West, Coastal Ngayarda
+nly: Australian, Pama-Nyungan, South-West, Inland Ngayarda
+ntj: Australian, Pama-Nyungan, South-West, Wati
+nuy: Australian, Gunwingguan, Enindhilyagwa
+nyt: Australian, Pama-Nyungan, Dyirbalic
+nyh: Australian, Nyulnyulan
+nna: Australian, Pama-Nyungan, South-West, Marngu
+nyv: Australian, Nyulnyulan
+pkn: Australian, Pama-Nyungan, Paman, Middle Pama
+piu: Australian, Pama-Nyungan, South-West, Wati
+pjt: Australian, Pama-Nyungan, South-West, Wati
+drl: Australian, Pama-Nyungan, Baagandji
+pnw: Australian, Pama-Nyungan, South-West, Inland Ngayarda
+pit: Australian, Pama-Nyungan, Karnic, Palku
+wdj: Australian, Daly, Bringen-Wagaydy, Wagaydy
+rit: Australian, Pama-Nyungan, Yuulngu, Dhuwal
+rmb: Australian, Gunwingguan, Rembargic
+typ: Australian, Pama-Nyungan, Paman, Rarmul Pama
+thd: Australian, Pama-Nyungan, Paman, Western Pama
+tiw: Australian, Tiwian
+woa: Australian, Daly, Malagmalag, Malagmalag Proper
+urf: Australian, Pama-Nyungan, Paman, Northern Pama
+ump: Australian, Pama-Nyungan, Paman, Northeastern Pama
+ung: Australian, Worrorran
+vka: Australian, Pama-Nyungan, South-West, Coastal Ngayarda
+waq: Australian, Gunwingguan, Wagiman
+wmb: Australian, West Barkly
+wbv: Australian, Pama-Nyungan, South-West, Wadjari
+wbt: Australian, Pama-Nyungan, South-West, Wati
+wgg: Australian, Pama-Nyungan, Karnic, Palku
+wrg: Australian, Pama-Nyungan, Maric
+wkw: Australian, Pama-Nyungan, Waka-Kabic, Miyan
+wmt: Australian, Pama-Nyungan, South-West, Ngumbin
+wrb: Australian, Pama-Nyungan, Wagaya-Warluwaric, Warluwara-Thawa
+wim: Australian, Pama-Nyungan, Paman, Middle Pama
+wig: Australian, Pama-Nyungan, Paman, Middle Pama
+wrr: Australian, Gunwingguan, Yangmanic
+wgy: Australian, Pama-Nyungan, Dyirbalic
+wbp: Australian, Pama-Nyungan, South-West, Ngarga
+wnd: Australian, Gunwingguan, Maran, Mara
+wrm: Australian, Pama-Nyungan, Warumungic
+wwr: Australian, Nyulnyulan
+wrz: Australian, Gunwingguan, Warayan
+yii: Australian, Pama-Nyungan, Yidinic
+yij: Australian, Pama-Nyungan, South-West, Coastal Ngayarda
+yiy: Australian, Pama-Nyungan, Paman, Yir Yoront
+mpj: Australian, Pama-Nyungan, South-West, Wati
+ylr: Australian, Pama-Nyungan, Galgadungic
+yia: Australian, Pama-Nyungan, South-West, Yinggarda
+kdd: Australian, Pama-Nyungan, South-West, Wati
+jao: Australian, Pama-Nyungan, Yanyuwan
+gcd: Australian, Tangic
+kld: Australian, Pama-Nyungan, Wiradhuric
+ywr: Australian, Nyulnyulan
+wrk: Australian, Yanyi
+dmw: Australian, Pama-Nyungan, South-West, Ngumbin
+xwk: Australian, Pama-Nyungan, Karnic, Ngura
+wgu: Australian, Pama-Nyungan, South-West, Yura
+wro: Australian, Worrorran, Western Worrorran
+tpx: Otomanguean, Western Otomanguean, Tlapantec-Manguean, Tlapantec-Subtiaba, Tlapantec
+irn: Language isolate
