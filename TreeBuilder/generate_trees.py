@@ -197,7 +197,7 @@ def report_on_dense_langs(languages):
     sortedfamily = [(family_counts[family], family) for family in family_counts]
     sortedfamily.sort()
     sortedfamily.reverse()
-    fp = codecs.open("dense_lang_report", "w", "UTF-8")
+    fp = open("dense_lang_report", "w", "UTF-8")
     fp.write("Total languages: %d\n" % len(languages))
     fp.write("Family breakdown:\n")
     for count, family in sortedfamily:
@@ -211,7 +211,7 @@ def report_on_dense_langs(languages):
 
 def load_ethnologue_classifications():
     ethnoclass = {}
-    fp = open("../EthnoScrape/classifications.txt")
+    fp = open("../EthnoScrape/classifications.txt", "UTF-8")
     for line in fp:
         if not line or line.startswith("#"):
             continue
@@ -256,11 +256,54 @@ def apply_ethnoclass(lang, ethnoclasses):
             isocode = "tvu"
         elif isocode == "kln":
             isocode = "niq"
+        # Australian / TNG languages
+        elif isocode == "gbc":
+            isocode = "wrk"
+        elif isocode == "mwd":
+            isocode = "dmw"
+        elif isocode == "nbx":
+            isocode = "xwk"
+        elif isocode == "wiw":
+            isocode = "wgu"
+        elif isocode == "unp":
+            isocode = "wro"
+        # American languages
+        elif isocode == "wit":
+            if lang.code == "ptw":
+                isocode = "pwi"
+            elif lang.code == "win":
+                isocode = "wnw"
+        elif isocode == "tzc":
+            isocode = "tzo"
+        elif isocode == "ckf":
+            isocode = "cak"
+        elif isocode == "hsf":
+            isocode = "hus"
+        elif isocode == "ixi":
+            isocode = "ixl"
+        elif isocode == "mvc":
+            isocode = "mam"
+        elif isocode == "chb":
+            isocode = "EXTINCT"
+
         if isocode in ethnoclasses:
-            lang.data["ethnoclass"] = ethnoclasses[isocode]
+            lang.data["ethnoclass"] = ethnoclasses[isocode].decode("UTF-8")
+            if lang.data["family"] in ("Oto-Manguean", "Uto-Aztecan", "Mayan", "Algic", "Arawakan", "Salishan", "Penutian", "Na-Dene", "Tupian", "Hokan", "Cariban", "Tucanoan", "Eskimo-Aleut", "Macro-Ge", "Chibchan"):
+                if lang.data["ethnoclass"].startswith(lang.data["family"]):
+                    classification = "American, " + lang.data["ethnoclass"]
+                else:
+                    classification = ("American, %s, " % lang.data["family"]) + lang.data["ethnoclass"]
+                lang.data["ethnoclass"] = classification
+
             return lang
 
     lang.data["ethnoclass"] = "Unclassified"
+#    print lang.data.get("Order of Subject, Object and Verb",None)
+    if lang.data.get("Order of Subject, Object and Verb",None) not in (None,7,'7'):
+        fp = open("/home/luke/missing_codes.txt", "a")
+        fp.write(lang.data["iso_codes"]+"\n")
+        fp.close()
+    lang.data["ethnoclass"] = lang.data["ethnoclass"].decode("UTF-8")
     return lang
 
 def main():
@@ -273,19 +316,23 @@ def main():
 
 
     afrolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Afro-Asiatic")
+    austlangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Australian")
     austrolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Austronesian")
     indolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Indo-European")
     nigerlangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Niger-Congo")
     nilolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Nilo-Saharan")
     sinolangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Sino-Tibetan")
+    tnglangs = wals2sql.get_dense_languages_by_family(conn, cursor, "Trans-New Guinea")
+    americanlangs = []
+    for amfam in ("Oto-Manguean", "Uto-Aztecan", "Mayan", "Algic", "Arawakan", "Salishan", "Penutian", "Na-Dene", "Tupian", "Hokan", "Cariban", "Tucanoan", "Eskimo-Aleut", "Macro-Ge", "Chibchan"):
+        americanlangs.extend(wals2sql.get_dense_languages_by_family(conn, cursor, amfam))
     cursor.close()
     conn.close()
 
 #    report_on_dense_langs(languages)
-    languages = (afrolangs, austrolangs, indolangs, nigerlangs, nilolangs, sinolangs)
-    ages = ([25000,], [7000,], [6000, 8750], [17500,], [17500,], [7500,])
-    names = ("afro", "austro", "indo", "niger", "nilo", "sino")
-
+    languages = (afrolangs, austlangs, austrolangs, indolangs, nigerlangs, nilolangs, sinolangs, tnglangs, americanlangs)
+    ages = ([25000,], [7000,], [6000, 8750], [17500,], [17500,], [7500,], [50000,], [4250,], [16500,])
+    names = ("afro", "austro", "indo", "niger", "nilo", "sino", "austro", "tng", "amer")
 
     if not os.path.exists("generated_trees"):
         os.mkdir("generated_trees")
