@@ -1,28 +1,13 @@
-0.105120	Position of negative words relative to beginning and end of clause and with respect to adjacency to verb
-0.543346	The Position of Negative Morphemes in SOV Languages
-0.946732	Negative Morphemes
-0.506554	Order of Negative Morpheme and Verb
-0.413290	Postverbal Negative Morphemes
-0.740231	Minor morphological means of signaling negation
-0.260505	Order of Adposition and Noun Phrase
-0.995962	Voicing in Plosives and Fricatives
-0.013381	Position of Polar Question Particles
-0.560814	Coding of Nominal Plurality
-0.330504	Postnominal relative clauses
-0.846011	Hand and Arm
-0.035161	Prefixing vs. Suffixing in Inflectional Morphology
-0.808481	Order of Demonstrative and Noun
-0.046469	Order of Genitive and Noun
-0.294252	Position of Pronominal Possessive Affixes
-0.312183	Position of Case Affixes
-0.779524	Order of Adverbial Subordinator and Clause
-0.451193	Order of Adjective and Noun
-0.688737	Order of Relative Clause and Noun
-0.640723	Expression of Pronominal Subjects
-0.990218	Preverbal Negative Morphemes
-0.522966	Order of Numeral and Noun
-0.161830	Position of Tense-Aspect Affixes
-0.310652	Finger and Hand
-0.596417	Polar Questions
-0.019386	Position of Interrogative Phrases in Content Questions
-0.621138	Definite Articles
+0.160000	intercept
+0.102328	Order of Adjective and Noun
+0.098441	Preverbal Negative Morphemes
+-0.045984	Negative Morphemes
+0.049267	Position of Case Affixes
+0.053649	Polar Questions
+0.104391	Position of Interrogative Phrases in Content Questions
+-0.016606	Position of Polar Question Particles
+0.022498	Order of Adverbial Subordinator and Clause
+0.080547	Postnominal relative clauses
+0.074348	Definite Articles
+0.037347	Hand and Arm
+-0.065145	Position of negative words relative to beginning and end of clause and with respect to adjacency to verb

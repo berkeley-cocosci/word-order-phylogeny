@@ -14,6 +14,7 @@ import scipy
 import sys
 import sqlite3
 import random
+import time
 
 import dendropy
 import prettytable
@@ -393,39 +394,65 @@ class Calibrator:
                     else:
                         df[feature].append(indomeans[long_feature])
 
-        print good_features
         df = pd.DataFrame(df)
         df.to_csv("calibration_results/feature_data.csv")
 
         austrodf = df[0:len(self.common_auth_austro_vector)]
         indodf = df[len(self.common_auth_austro_vector):]
-        best_mean_correl = 0
-        best_selectors = None
+
+        # Optimise for a fixed length of time
         rank = []
-        for feature_selectors in itertools.product(*[(True, False),]*10):
-            if feature_selectors.count(True) == 0:
-                continue
+        starttime = time.time()
+        while (time.time() - starttime) < 30*60:
+            # Generate a random binary vector indicating which
+            # features are and are not in the model
+            on_features = random.randint(1, len(good_features))
+            feature_selectors = [True,]*on_features + [False,]*(len(good_features)-on_features)
+            random.shuffle(feature_selectors)
+
+            # Fit a model using the randomly selected features
             model_spec = "auth ~ " + " + ".join([feat for feat, sel in zip(good_features, feature_selectors) if sel])
             model = smf.wls(model_spec, data=df, weights=self.weights).fit()
+            # Compute correlations for the two families
+            # separately
             austrofit = model.fittedvalues[0:len(self.common_auth_austro_vector)]
             austroauth = austrodf["auth"]
+            austro_correl = austroauth.corr(austrofit)
             indofit = model.fittedvalues[len(self.common_auth_austro_vector):]
             indoauth = indodf["auth"]
-#            austromodel = smf.ols(model_spec, data=austrodf).fit()
-#            indomodel = smf.ols(model_spec, data=indodf).fit()
-#            mean_correl = (math.sqrt(austromodel.rsquared)+math.sqrt(indomodel.rsquared))/2.0
-            # Let's minimise the minimum instead!
-            mean_correl = sorted((austroauth.corr(austrofit), indoauth.corr(indofit), 0.5*(austroauth.corr(austrofit)+indoauth.corr(indofit))))
-            thingy = (mean_correl, feature_selectors.count(True), feature_selectors)
+            indo_correl = indoauth.corr(indofit)
+            # Record pertinent details in a big list
+            min_correl = min(austro_correl, indo_correl)
+            thingy = (min_correl, austro_correl, indo_correl, feature_selectors.count(True), feature_selectors)
             rank.append(thingy)
-            if mean_correl > best_mean_correl:
-                best_mean_correl = mean_correl
-                best_selectors = feature_selectors[:]
+            if len(rank) == 50000:
+                # List is getting kind of long
+                # Let's keep the best 10% and ditch the rest,
+                # then keep going...
+                rank.sort()
+                rank.reverse()
+                rank = rank[0:5000]
 
+        # Find the highest min correlation 
         rank.sort()
         rank.reverse()
-        # Pay no attention to the magic number 6 behind the curtain...
-        best_selectors = rank[6][2]
+        best_min_correl = rank[0][0]
+        # Now, filter rank to include only those models with
+        # a min correlation within 5% of the best possible
+        # and rank them by number of features in model, finding
+        # the highest filter count
+        rank = [(c,m,a,i,s) for (m,a,i,c,s) in rank if m>=0.95*best_min_correl]
+        rank.sort()
+        rank.reverse()
+        highest_count = rank[0][0]
+        # Now, filter rank to include only those models with
+        # the highest number of features, and rank them by
+        # min correlation
+        rank = [(m,a,i,c,s) for (c,m,a,i,s) in rank if c == highest_count]
+        rank.sort()
+        rank.reverse()
+        # Take the best
+        best_selectors = rank[0][-1]
         best_features = [feat for feat, sel in zip(good_features, best_selectors) if sel]
         model_spec = "auth ~ " + " + ".join(best_features)
         model = smf.wls(model_spec, data=df, weights=self.weights).fit()
