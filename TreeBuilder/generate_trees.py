@@ -330,9 +330,9 @@ def main():
     conn.close()
 
 #    report_on_dense_langs(languages)
-    languages = (afrolangs, austlangs, austrolangs, indolangs, nigerlangs, nilolangs, sinolangs, tnglangs, americanlangs)
+    languages = (afrolangs, austrolangs, indolangs, nigerlangs, nilolangs, sinolangs, austlangs, tnglangs, americanlangs)
     ages = ([25000,], [7000,], [6000, 8750], [17500,], [17500,], [7500,], [50000,], [4250,], [16500,])
-    names = ("afro", "austro", "indo", "niger", "nilo", "sino", "austro", "tng", "amer")
+    names = ("afro", "austro", "indo", "niger", "nilo", "sino", "aust", "tng", "amer")
 
     if not os.path.exists("generated_trees"):
         os.mkdir("generated_trees")
