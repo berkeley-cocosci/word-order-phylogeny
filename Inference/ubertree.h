@@ -10,8 +10,8 @@
 #include<gsl/gsl_vector.h>
 #include<gsl/gsl_vector_complex.h>
 
-#define MIN_PROTOAGE 55000
-#define MAX_PROTOAGE 100000
+#define MIN_PROTOAGE 70000
+#define MAX_PROTOAGE 150000
 #define STEPS 100.0
 
 #include "tree.h"

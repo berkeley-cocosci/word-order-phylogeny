@@ -10,8 +10,8 @@
 #include<gsl/gsl_vector.h>
 #include<gsl/gsl_vector_complex.h>
 
-#define MIN_PROTOAGE 35000
-#define MAX_PROTOAGE 100000
+#define MIN_PROTOAGE 70000
+#define MAX_PROTOAGE 150000
 #define STEPS 100.0
 
 #include "gslworkspace.h"
@@ -37,6 +37,16 @@ void update_ubertree(ubertree_t *ut, node_t **trees, gsl_matrix *Q, gslws_t *ws)
 	ut->sample_count++;
 }
 	
+float load_tree_age(char *filename) {
+	FILE *fp;
+	float age;
+
+	fp = fopen(filename, "r");
+	fscanf(fp, "%f\n", &age);
+	fclose(fp);
+	return age;
+}
+
 void compute_protodist(double protoage, ubertree_t *ut, node_t **trees, gsl_matrix *Q, gslws_t *ws) {
 	double branch_lengths[6];
 	int i, tree, proto_order, sub_order; 
