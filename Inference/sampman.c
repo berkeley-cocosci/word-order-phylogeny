@@ -1,6 +1,8 @@
 #include <math.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
 #include "params.h"
 #include "matrix.h"
@@ -78,6 +80,7 @@ void compute_means(sampman_t *sm) {
 	fprint_vector(stdout, sm->stationary_prior_ancestral_sum);
 	gsl_vector_scale(sm->evidence_sum, 1.0 / sm->sample_count);
 	for(i=0;i<10;i++) sm->statistics[i] /= sm->sample_count;
+
 }
 
 void process_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws, node_t *tree) {
@@ -178,6 +181,15 @@ void process_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws, node_t *tree) {
 
 }
 
+void process_prior_sample(sampman_t *sm, mcmc_t *mcmc, gslws_t *ws) {
+	if(sm->log_pointer < 200000) {
+		sm->prior_log[sm->log_pointer] = mcmc->log_prior;
+		sm->likelihood_log[sm->log_pointer] = mcmc->log_lh;
+		sm->posterior_log[sm->log_pointer] = mcmc->log_poster;
+		sm->log_pointer++;
+	}
+}
+
 void finish(sampman_t *sm) {
 	printf("Mean Q is:\n");
 	fprint_matrix(stdout, sm->Q_sum);
@@ -227,7 +239,9 @@ void save_indiv_q(char *directory, sampman_t *sm) {
 	fprintf(fp, "SOV to SVO (over VSO): %f\n", sm->statistics[SOV_TO_SVO]);
 	fprintf(fp, "SVO to SOV (over VSO): %f\n", sm->statistics[SVO_TO_SOV]);
 	fprintf(fp, "VSO to SOV (over SVO): %f\n", sm->statistics[VSO_TO_SOV]);
+	fprintf(fp, "SOV most stable: %f\n", sm->statistics[SOV_MOST_STAB]);
 	fprintf(fp, "SVO most stable: %f\n", sm->statistics[SVO_MOST_STAB]);
+	fprintf(fp, "VSO most stable: %f\n", sm->statistics[VSO_MOST_STAB]);
 //	fprintf(fp, "SOV most likely ancestor: %f\n", statistics[SOV_MOST_LIKE]);
 	fprintf(fp, "----------\n");
 	fprintf(fp, "Maximum log likelihood: %f\n", sm->max_log_lh);
@@ -255,7 +269,7 @@ void save_indiv_q(char *directory, sampman_t *sm) {
 	strcpy(filename, directory);
 	strcat(filename, "/bayes_factor_posterior_samples");
 	fp = fopen(filename, "w");
-	for(i=0; i<100000; i++) fprintf(fp, "%f, %f, %f\n", sm->prior_log[i], sm->likelihood_log[i], sm->posterior_log[i]);
+	for(i=0; i<sm->log_pointer; i++) fprintf(fp, "%f, %f, %f\n", sm->prior_log[i], sm->likelihood_log[i], sm->posterior_log[i]);
 	fclose(fp);
 
 	/* Save sliding prior ancestral distributions */
@@ -344,7 +358,7 @@ void save_common_q(char *directory, sampman_t *sms) {
 	strcpy(filename, directory);
 	strcat(filename, "/bayes_factor_posterior_samples");
 	fp = fopen(filename, "w");
-	for(i=0; i<100000; i++) {
+	for(i=0; i<sms[0].log_pointer; i++) {
 		fprintf(fp, "%f, %f, %f\n", sms[0].prior_log[i], sms[0].likelihood_log[i], sms[0].posterior_log[i]);
 	}
 	fclose(fp);

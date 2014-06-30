@@ -333,3 +333,36 @@ void balanced_multi_tree_mcmc_iteration(FILE *fp, mcmc_t *mcmc, node_t **trees, 
 	new_log_poster = new_log_prior + new_log_lh;
 	accept_or_reject(fp, mcmc, new_log_prior, new_log_lh, new_log_poster);
 }
+
+void draw_proposal_from_prior(mcmc_t *mcmc, gslws_t *ws) {
+	int i, j, k;
+	double simplex[5];
+	double norm;
+	/* Sample from prior */
+	/* Sample trans uniformly */
+	for(j=0; j<6; j++) {
+		norm = 0;
+		for(k=0; k<5; k++) {
+			simplex[k] = gsl_rng_uniform_pos(mcmc->r);
+			simplex[k] = log(simplex[k]);
+			norm += simplex[k];
+		}
+		for(k=0; k<5; k++) simplex[k] /= norm;
+		for(k=0; k<6; k++) {
+			if(k < j) {
+				gsl_matrix_set(mcmc->trans_dash, j, k, simplex[k]);
+			} else if(k == j) {
+				gsl_matrix_set(mcmc->trans_dash, j, k, 0);
+			} else {
+				gsl_matrix_set(mcmc->trans_dash, j, k, simplex[k-1]);
+			}
+		}
+	}
+	/* Sample stab exponentially */
+	for(j=0; j<6; j++) {
+		gsl_vector_set(mcmc->stabs_dash, j, gsl_ran_exponential(mcmc->r, 3.0));
+	}
+	/* Build Q dash */
+	build_q_dash(mcmc);
+
+}

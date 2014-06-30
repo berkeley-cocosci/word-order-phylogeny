@@ -43,6 +43,16 @@ void do_single_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t *tree, gslws_t *
 		/* Record sample */
 		process_sample(sm, mcmc, ws, tree);
 	}
+	/* Do computations for Q matrices sampled from the pior
+	 * and log stuff so we can do importance sampling for
+	 * marginal likelihood later */
+	for(i=0; i<samples; i++) {
+		draw_proposal_from_prior(mcmc, ws);
+		mcmc->log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
+		mcmc->log_lh = get_model_loglh(tree, mcmc->Q_dash, ws);
+		mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
+		process_prior_sample(sm, mcmc, ws);
+	}
 }
 
 void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **subtrees, node_t **wholetrees, gslws_t *wses, sampman_t *sms, ubertree_t *ut, int burnin, int samples, int lag) {
@@ -68,6 +78,17 @@ void do_multi_tree_inference(FILE *logfp, mcmc_t *mcmc, node_t **subtrees, node_
 			process_sample(&sms[j], mcmc, &wses[j], wholetrees[j]);
 		}
 		if(ut != NULL) update_ubertree(ut, wholetrees, mcmc->Q, &wses[0]);
+	}
+	/* Do computations for Q matrices sampled from the pior
+	 * and log stuff so we can do importance sampling for
+	 * marginal likelihood later */
+	for(i=0; i<samples; i++) {
+		draw_proposal_from_prior(mcmc, wses);
+		mcmc->log_prior = get_log_prior(mcmc->stabs_dash, mcmc->trans_dash);
+		mcmc->log_lh = 0;
+		for(j=0; j<NUM_TREES; j++) mcmc->log_lh += get_model_loglh(wholetrees[j], mcmc->Q_dash, &wses[j]);
+		mcmc->log_poster = mcmc->log_prior + mcmc->log_lh;
+		process_prior_sample(&sms[0], mcmc, &wses[0]);
 	}
 }
 

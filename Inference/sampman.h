@@ -19,9 +19,9 @@ struct sampman{
 	FILE *samplesfp, *ancestralsfp;
 	double max_log_lh;
 	double max_log_poster;
-	double prior_log[100000];
-	double likelihood_log[100000];
-	double posterior_log[100000];
+	double prior_log[200000];
+	double likelihood_log[200000];
+	double posterior_log[200000];
 	gsl_vector *stabs_sum;
 	gsl_vector *stabs_map;
 	gsl_vector *stabs_log[500];
