@@ -494,26 +494,3 @@ void find_leaves(node_t *node, node_t **leaves, int *leafindex) {
 		find_leaves(node->right_child, leaves, leafindex);
 	}
 }
-
-void subsample(node_t ***trees, gsl_rng *r) {
-	double survival_rates[6] = {0.37,0.30,1.00,0.30,0.49,1.00};
-	int leafcount, i, j;
-	/* Make a leaf list large enough for the largest family, Niger-Congo */
-	node_t **leaves = calloc(197, sizeof(node_t*));
-	for(i=0; i<6; i++) {
-		/* Find all leaf nodes */
-		leafcount = 0;
-		find_leaves((*trees)[i], leaves, &leafcount);
-		/* Shuffle leaf list */
-		gsl_ran_shuffle(r, leaves, leafcount, sizeof(node_t*));
-		/* Iterate over list, randomly dropping data */
-		for(j=0; j<leafcount; j++) {
-			if(gsl_rng_uniform(r) > survival_rates[i]) {
-				memset(leaves[j]->l_message, 0, 6*sizeof(double));
-			}
-		}
-		/* Remove leaf nodes with missing data from tree */
-		unknown_data_leafectomy((*trees)[i]);
-	}
-
-}
