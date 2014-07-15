@@ -249,7 +249,7 @@ void whole_indiv_q(int method, int shuffle, int burnin, int samples, int lag, in
 	uint8_t family;
 	int treeindex;
 	char filename[1024];
-	char families[][16] = {"afro", "austro", "indo", "niger", "nilo", "sino", "aust", "tng", "amer"};
+	char families[][16] = {"afro", "austro", "indo", "niger", "nilo", "sino", "tng", "amer"};
 	char types[][16] = {"geographic", "genetic", "feature", "combination" };
 	node_t *tree;
 	mcmc_t mcmc;
@@ -355,8 +355,8 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 
 		gsl_matrix_set_zero(q1);
 		gsl_matrix_set_zero(q2);
-		memset(anccorrel1, 0, NUM_TREES*sizeof(double));
-		memset(anccorrel2, 0, NUM_TREES*sizeof(double));
+		memset(anccorrel1, 0, 6*NUM_TREES*sizeof(double));
+		memset(anccorrel2, 0, 6*NUM_TREES*sizeof(double));
 		/* Take samples */
 		for(i=0; i<samples; i++) {
 			if(gsl_rng_uniform_int(mcmc1.r, 10000) >= 9999) {
@@ -402,7 +402,7 @@ void split_shared_q(int method, int shuffle, int burnin, int samples, int lag, i
 		
 		gsl_matrix_scale(q1, 1.0 / samples);
 		gsl_matrix_scale(q2, 1.0 / samples);
-		for(i=0; i<6; i++) {
+		for(i=0; i<NUM_TREES; i++) {
 			for(j=0; j<6; j++) {
 				qcorrel1[i*6+j] = gsl_matrix_get(q1, i, j);
 				qcorrel2[i*6+j] = gsl_matrix_get(q2, i, j);
